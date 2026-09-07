@@ -101,6 +101,7 @@ export default function About({ site }) {
         ))}
       </div>
       <div style={{ height: 8 }} />
+      <div style={{ textAlign: "center", fontSize: 11, color: "var(--inkSoft)", marginTop: 4 }}>KTN Digital School app · v2.0</div>
     </>
   );
 }

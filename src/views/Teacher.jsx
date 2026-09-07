@@ -4,6 +4,8 @@ import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
 import { fmtDate } from "../lib/util";
+import { hasDrive, uploadToDrive } from "../lib/drive";
+import FileViewer from "../components/FileViewer.jsx";
 import * as store from "../lib/store";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -227,6 +229,134 @@ function TeacherToday({ user, regular, specials, onTake, onMarks }) {
   );
 }
 
+/* ---------------- Teacher Assignments (Work) ---------------- */
+function TeacherAssignments({ grades, subject }) {
+  const [list, setList] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ grade: grades[0] || "", title: "", instructions: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "", due: "" });
+  const [expand, setExpand] = useState(null);
+  const [detail, setDetail] = useState({});
+  const [viewer, setViewer] = useState(null);
+  const [up, setUp] = useState(false);
+  useEffect(() => { store.listAssignmentsForTeacher(grades, subject).then(setList); }, []);
+
+  async function onFile(e) {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    setUp(true);
+    try { const r = await uploadToDrive(form.grade, f); setForm((s) => ({ ...s, link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name })); }
+    catch (err) { alert(err.message || "Upload failed"); }
+    finally { setUp(false); }
+  }
+
+  if (grades.length === 0) return <div className="card" style={{ padding: 20, color: "var(--inkSoft)", fontSize: 14 }}>Assignments are for grade classes. Your special-class tools are coming soon.</div>;
+
+  async function add() {
+    if (!form.title.trim()) return;
+    const rec = await store.addAssignment({ grade: form.grade, subject, title: form.title.trim(), instructions: form.instructions.trim(), link: form.link.trim(), viewUrl: form.viewUrl, openUrl: form.openUrl, downloadUrl: form.downloadUrl, fileName: form.fileName, due: form.due });
+    setList((l) => [rec, ...(l || [])]); setForm({ grade: form.grade, title: "", instructions: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "", due: "" }); setOpen(false);
+  }
+  async function remove(id) { await store.removeAssignment(id); setList((l) => l.filter((a) => a.id !== id)); setExpand(null); }
+  async function toggleExpand(a) {
+    if (expand === a.id) { setExpand(null); return; }
+    setExpand(a.id);
+    if (!detail[a.id]) {
+      const [students, subs] = await Promise.all([store.listStudentsByGrade(a.grade), store.listSubmissions(a.id)]);
+      setDetail((d) => ({ ...d, [a.id]: { students, subs } }));
+    }
+  }
+  async function review(a, st) {
+    const rec = await store.setSubmission(a.id, st.id, a.grade, { status: "reviewed", reviewedAt: new Date().toISOString() });
+    setDetail((d) => ({ ...d, [a.id]: { ...d[a.id], subs: { ...d[a.id].subs, [st.id]: rec } } }));
+  }
+
+  return (
+    <>
+      {!open ? (
+        <button className="btnP" onClick={() => setOpen(true)} style={{ width: "100%", justifyContent: "center", marginBottom: 16 }}>
+          <Icon name="plus" size={15} color="#fff" sw={2.5} /> New assignment
+        </button>
+      ) : (
+        <div className="card" style={{ padding: 16, marginBottom: 16, borderColor: "var(--azure)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>New assignment · {subject}</div>
+            <button className="btnGhost" onClick={() => setOpen(false)}><Icon name="x" size={15} color="#52617A" /></button>
+          </div>
+          {grades.length > 1 && (
+            <select className="input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>{grades.map((g) => <option key={g}>{g}</option>)}</select>
+          )}
+          <input className="input" placeholder="Title (e.g. Worksheet 5 — Nouns)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+          <textarea className="input" rows={2} placeholder="Instructions (optional)" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} style={{ resize: "vertical" }} />
+          {hasDrive ? (
+            <div style={{ marginBottom: 10 }}>
+              <label className="btnP" style={{ width: "100%", justifyContent: "center", background: form.fileName ? "#1E9E5A" : "var(--tintBlue)", color: form.fileName ? "#fff" : "var(--azure)", cursor: "pointer" }}>
+                <Icon name={form.fileName ? "check" : "plus"} size={15} color={form.fileName ? "#fff" : "#2F6BFF"} sw={2.4} />
+                {up ? "Uploading…" : form.fileName ? `Uploaded: ${form.fileName}` : "Upload worksheet (to KTN Drive)"}
+                <input type="file" onChange={onFile} style={{ display: "none" }} />
+              </label>
+            </div>
+          ) : (
+            <input className="input" placeholder="Worksheet link (Google Drive / any link)" value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} />
+          )}
+          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Due date (optional)</label>
+          <input className="input" type="date" value={form.due} onChange={(e) => setForm((f) => ({ ...f, due: e.target.value }))} />
+          <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}>Post assignment</button>
+          <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload the worksheet to Google Drive, then paste its share link here — this keeps storage free.</p>
+        </div>
+      )}
+
+      {list === null ? <p className="para">Loading…</p> : list.length === 0 ? (
+        <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
+          <Mascot size={70} style={{ margin: "0 auto 6px" }} /><div>No assignments yet. Post your first one!</div>
+        </div>
+      ) : list.map((a) => {
+        const d = detail[a.id];
+        const done = d ? Object.values(d.subs).filter((s) => s.status === "reviewed").length : null;
+        return (
+          <div key={a.id} className="card" style={{ padding: 14, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 15 }}>{a.title}</div>
+                <div style={{ fontSize: 12, color: "var(--inkSoft)", marginTop: 2 }}>{a.grade}{a.due ? ` · due ${fmtDate(a.due)}` : ""}{d ? ` · ${done}/${d.students.length} done` : ""}</div>
+              </div>
+              <button className="btnGhost" onClick={() => remove(a.id)}><Icon name="trash" size={15} color="#FF6B5E" /></button>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              {(a.viewUrl || a.link) && (a.viewUrl
+                ? <button className="btnP" onClick={() => setViewer({ name: a.fileName || a.title, viewUrl: a.viewUrl, downloadUrl: a.downloadUrl || a.link, openUrl: a.openUrl || a.link })} style={{ background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="book" size={15} color="#2F6BFF" sw={2.3} /> Worksheet</button>
+                : <a href={a.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="book" size={15} color="#2F6BFF" sw={2.3} /> Worksheet</a>)}
+              <button className="btnP" onClick={() => toggleExpand(a)} style={{ flex: 1, justifyContent: "center", background: expand === a.id ? "var(--azure)" : "#fff", color: expand === a.id ? "#fff" : "var(--azure)", border: "1px solid var(--azure)" }}>
+                {expand === a.id ? "Hide class" : "View class"}
+              </button>
+            </div>
+            {expand === a.id && (
+              <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 8 }}>
+                {!d ? <p className="para" style={{ fontSize: 13 }}>Loading class…</p> : d.students.length === 0 ? (
+                  <div style={{ fontSize: 13, color: "var(--inkSoft)" }}>No students in {a.grade} yet.</div>
+                ) : d.students.map((st) => {
+                  const s = d.subs[st.id];
+                  const status = s ? s.status : "pending";
+                  return (
+                    <div key={st.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 2px", gap: 6 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, flex: 1, minWidth: 0 }}>{st.name}</div>
+                      {s && (s.viewUrl || s.link) && <button className="btnGhost" onClick={() => setViewer({ name: st.name + " — work", viewUrl: s.viewUrl, downloadUrl: s.downloadUrl || s.link, openUrl: s.openUrl || s.link })} style={{ padding: 7 }} title="Open student's work"><Icon name="book" size={14} color="#2F6BFF" /></button>}
+                      {status === "reviewed" ? <span className="pillBadge" style={{ background: "#E1F5EE", color: "#1E7A45" }}><Icon name="check" size={12} color="#1E7A45" sw={2.5} /> Done</span>
+                        : <button className="btnP" onClick={() => review(a, st)} style={{ padding: "7px 12px", fontSize: 12.5, background: status === "submitted" ? "#1E9E5A" : "#fff", color: status === "submitted" ? "#fff" : "var(--inkSoft)", border: status === "submitted" ? "none" : "1px solid var(--line)" }}>
+                            {status === "submitted" ? "✓ Mark done" : "Mark done"}
+                          </button>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {viewer && <FileViewer file={viewer} onClose={() => setViewer(null)} />}
+      <div style={{ height: 8 }} />
+    </>
+  );
+}
+
 /* ---------------- Teacher shell ---------------- */
 export default function Teacher({ user }) {
   const [tab, setTab] = useState("today");
@@ -246,18 +376,20 @@ export default function Teacher({ user }) {
     </div>;
   }
 
-  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"]];
+  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"]];
 
   return (
     <>
-      <SectionTitle eyebrow={`Welcome, ${user.name.split(" ")[0]}`} title={tab === "today" ? "Your day" : tab === "attendance" ? "Attendance" : "Enter marks"} />
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <SectionTitle eyebrow={`Welcome, ${user.name.split(" ")[0]}`} title={tab === "today" ? "Your day" : tab === "attendance" ? "Attendance" : tab === "marks" ? "Enter marks" : "Assignments"} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {TABS.map(([k, label, ic]) => (
           <button key={k} className="btnP" onClick={() => setTab(k)} style={{ background: tab === k ? "var(--azure)" : "#fff", color: tab === k ? "#fff" : "var(--inkSoft)", border: "1px solid " + (tab === k ? "var(--azure)" : "var(--line)") }}>
             <Icon name={ic} size={15} color={tab === k ? "#fff" : "#52617A"} sw={2.4} /> {label}
           </button>
         ))}
       </div>
+
+      {tab === "work" && <TeacherAssignments grades={[...new Set(regular.map((a) => a.grade))]} subject={regular[0] ? regular[0].subject : (user.subject || "")} />}
 
       {tab === "today" && (
         <TeacherToday user={user} regular={regular} specials={specials}

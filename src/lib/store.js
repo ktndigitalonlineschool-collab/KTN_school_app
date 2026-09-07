@@ -527,3 +527,59 @@ export async function bulkUpsertStudents(rows) {
   }
   return { updated, created, skipped };
 }
+
+/* ============ ASSIGNMENTS / WORKSHEETS (v2) ============ */
+/* Files live in Google Drive; we store only a link + tiny status records. */
+export async function addAssignment(data) {
+  const rec = { ...data, createdAt: new Date().toISOString() };
+  if (hasFirebase) { const ref = await addDoc(collection(db, "assignments"), rec); return { id: ref.id, ...rec }; }
+  const list = lsGet("ktn_assignments", []); const r = { id: "as" + Date.now(), ...rec }; lsSet("ktn_assignments", [r, ...list]); return r;
+}
+export async function removeAssignment(id) {
+  if (hasFirebase) { await deleteDoc(doc(db, "assignments", id)); return; }
+  lsSet("ktn_assignments", lsGet("ktn_assignments", []).filter((a) => a.id !== id));
+}
+export async function listAssignmentsByGrade(grade) {
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "assignments"), where("grade", "==", grade)));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+  return lsGet("ktn_assignments", []).filter((a) => a.grade === grade);
+}
+export async function listAssignmentsForTeacher(grades, subject) {
+  let all = [];
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "assignments"), where("subject", "==", subject)));
+    all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } else {
+    all = lsGet("ktn_assignments", []).filter((a) => a.subject === subject);
+  }
+  return all.filter((a) => grades.includes(a.grade)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+const subId = (aid, sid) => `${aid}__${sid}`;
+export async function setSubmission(assignmentId, studentId, grade, patch) {
+  const data = { assignmentId, studentId, grade, ...patch };
+  if (hasFirebase) { await setDoc(doc(db, "submissions", subId(assignmentId, studentId)), data, { merge: true }); return data; }
+  const all = lsGet("ktn_submissions", {}); all[subId(assignmentId, studentId)] = { ...(all[subId(assignmentId, studentId)] || {}), ...data }; lsSet("ktn_submissions", all); return data;
+}
+export async function getStudentSubmissions(studentId) {
+  const map = {};
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "submissions"), where("studentId", "==", studentId)));
+    snap.docs.forEach((d) => { const s = d.data(); map[s.assignmentId] = s; });
+  } else {
+    const all = lsGet("ktn_submissions", {}); Object.values(all).forEach((s) => { if (s.studentId === studentId) map[s.assignmentId] = s; });
+  }
+  return map;
+}
+export async function listSubmissions(assignmentId) {
+  const map = {};
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignmentId)));
+    snap.docs.forEach((d) => { const s = d.data(); map[s.studentId] = s; });
+  } else {
+    const all = lsGet("ktn_submissions", {}); Object.values(all).forEach((s) => { if (s.assignmentId === assignmentId) map[s.studentId] = s; });
+  }
+  return map;
+}

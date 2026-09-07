@@ -56,6 +56,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ---- Assignments / worksheets ----
+    match /assignments/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isTeacher() || isAdmin();
+    }
+    // ---- Assignment submissions (student done / teacher reviewed) ----
+    match /submissions/{id} {
+      allow read: if isAdmin()
+        || (isStudent() && resource.data.studentId == myStudentId())
+        || (isTeacher() && resource.data.grade in myGrades());
+      allow create, update: if isAdmin()
+        || (isStudent() && request.resource.data.studentId == myStudentId())
+        || (isTeacher() && request.resource.data.grade in myGrades());
+      allow delete: if isAdmin();
+    }
+
     // ---- Admission requests (public Apply form) ----
     match /applications/{id} {
       allow create: if true;

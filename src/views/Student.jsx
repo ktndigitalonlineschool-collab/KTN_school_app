@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Icon from "../data/icons.jsx";
 import Mascot from "../components/Mascot.jsx";
+import FileViewer from "../components/FileViewer.jsx";
+import { hasDrive, uploadToDrive } from "../lib/drive";
 import { TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
 import { fmtDate } from "../lib/util";
 import * as store from "../lib/store";
@@ -24,8 +26,12 @@ export default function Student({ user }) {
   const [att, setAtt] = useState([]);
   const [tt, setTt] = useState([]);
   const [news, setNews] = useState([]);
+  const [asg, setAsg] = useState([]);
+  const [subs, setSubs] = useState({});
   const [loading, setLoading] = useState(true);
   const [term, setTerm] = useState(TERMS[0]);
+  const [viewer, setViewer] = useState(null);
+  const [upId, setUpId] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -34,9 +40,26 @@ export default function Student({ user }) {
       store.getStudentAttendance(user.id, user.grade),
       user.grade ? store.getTimetable(user.grade) : Promise.resolve([]),
       store.listNews(),
-    ]).then(([m, a, t, n]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setLoading(false); });
+      user.grade ? store.listAssignmentsByGrade(user.grade) : Promise.resolve([]),
+      store.getStudentSubmissions(user.id),
+    ]).then(([m, a, t, n, ag, sb]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setLoading(false); });
     return () => { live = false; };
   }, [user.id, user.grade]);
+
+  async function markDone(a) {
+    const rec = await store.setSubmission(a.id, user.id, user.grade, { status: "submitted", submittedAt: new Date().toISOString() });
+    setSubs((s) => ({ ...s, [a.id]: rec }));
+  }
+  async function uploadWork(a, file) {
+    if (!file) return;
+    setUpId(a.id);
+    try {
+      const r = await uploadToDrive(`Submissions/${user.grade}`, file);
+      const rec = await store.setSubmission(a.id, user.id, user.grade, { status: "submitted", submittedAt: new Date().toISOString(), link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name });
+      setSubs((s) => ({ ...s, [a.id]: rec }));
+    } catch (e) { alert(e.message || "Upload failed"); }
+    finally { setUpId(null); }
+  }
 
   // attendance
   const summary = att.reduce((o, r) => { o[r.status] = (o[r.status] || 0) + 1; return o; }, {});
@@ -140,6 +163,41 @@ export default function Student({ user }) {
         </>)}
       </div>
 
+      {/* ASSIGNMENTS */}
+      <h3 className="h2" style={{ margin: "22px 0 10px" }}>Assignments</h3>
+      {asg.length === 0 ? (
+        <div className="card" style={{ padding: 18, textAlign: "center", color: "var(--inkSoft)", fontSize: 13.5 }}>No assignments right now. 🎉</div>
+      ) : asg.map((a) => {
+        const st = subs[a.id];
+        return (
+          <div key={a.id} className="card" style={{ padding: 14, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14.5 }}>{a.title}</div>
+                <div style={{ fontSize: 12, color: "var(--inkSoft)", marginTop: 2 }}>{a.subject}{a.due ? ` · due ${fmtDate(a.due)}` : ""}</div>
+              </div>
+              {st && st.status === "reviewed" ? <span className="pillBadge" style={{ background: "#E1F5EE", color: "#1E7A45" }}><Icon name="check" size={12} color="#1E7A45" sw={2.5} /> Done</span>
+                : st && st.status === "submitted" ? <span className="pillBadge" style={{ background: "var(--tintAmber)", color: "#B76A0E" }}>Submitted</span>
+                : null}
+            </div>
+            {a.instructions && <p className="para" style={{ margin: "8px 0 0", fontSize: 12.5 }}>{a.instructions}</p>}
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              {(a.viewUrl || a.link) && (a.viewUrl
+                ? <button className="btnP" onClick={() => setViewer({ name: a.fileName || a.title, viewUrl: a.viewUrl, downloadUrl: a.downloadUrl || a.link, openUrl: a.openUrl || a.link })} style={{ flex: 1, justifyContent: "center", background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="book" size={15} color="#2F6BFF" sw={2.3} /> Open worksheet</button>
+                : <a href={a.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="book" size={15} color="#2F6BFF" sw={2.3} /> Open worksheet</a>)}
+              {hasDrive ? (
+                (!st || st.status !== "reviewed") && (
+                  <label className="btnP" style={{ flex: 1, justifyContent: "center", background: "#1E9E5A", cursor: "pointer" }}>
+                    <Icon name="check" size={15} color="#fff" sw={2.5} /> {upId === a.id ? "Uploading…" : (st ? "Re-upload work" : "Upload my work")}
+                    <input type="file" onChange={(e) => uploadWork(a, e.target.files && e.target.files[0])} style={{ display: "none" }} />
+                  </label>
+                )
+              ) : (!st && <button className="btnP" onClick={() => markDone(a)} style={{ flex: 1, justifyContent: "center", background: "#1E9E5A" }}><Icon name="check" size={15} color="#fff" sw={2.5} /> Mark as done</button>)}
+            </div>
+          </div>
+        );
+      })}
+
       {/* NOTICE */}
       {pinned && (<>
         <h3 className="h2" style={{ margin: "22px 0 10px" }}>Notice</h3>
@@ -150,6 +208,7 @@ export default function Student({ user }) {
         </div>
       </>)}
       <div style={{ height: 10 }} />
+      {viewer && <FileViewer file={viewer} onClose={() => setViewer(null)} />}
     </>
   );
 }
