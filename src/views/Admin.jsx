@@ -10,7 +10,7 @@ import logo from "../assets/logo.png";
 import { TT, DAYCOL, ROTATING, TEACH as TEACH_DEF, PRESS as PRESS_DEF, FOUNDERS as FOUNDERS_DEF, LEADER_MESSAGE as LEADER_DEF, MILESTONES as MILESTONES_DEF } from "../data/content";
 import { TEACHERS as BUILTIN_TEACHERS } from "../data/teachers";
 import { ROSTER, ROSTER_MAX_ROLL } from "../data/roster";
-import { fmtDate } from "../lib/util";
+import { fmtDate, normRoll } from "../lib/util";
 import { hasFirebase } from "../lib/firebase";
 import { createStudentAccount, createTeacherAccount, resetPassword } from "../lib/auth";
 import { sendWelcomeEmail } from "../lib/email";
@@ -205,6 +205,17 @@ function Students() {
 
   const [rcGrade, setRcGrade] = useState(GRADES[0]);
   const [rcBusy, setRcBusy] = useState(false);
+  const [cleanBusy, setCleanBusy] = useState(false);
+  const [cleanMsg, setCleanMsg] = useState("");
+  async function cleanRolls() {
+    setCleanBusy(true); setCleanMsg("");
+    try {
+      const n = await store.cleanRollNumbers();
+      setList(await store.listStudents());
+      setCleanMsg(n === 0 ? "All roll numbers already clean." : `Fixed ${n} roll number${n === 1 ? "" : "s"}.`);
+    } catch (e) { setCleanMsg(e.message || "Could not clean."); }
+    finally { setCleanBusy(false); }
+  }
   async function generateMarksheets() {
     setRcBusy(true);
     try {
@@ -221,7 +232,7 @@ function Students() {
         const rows = subs.map((s) => { const a = (byTS["Sem 1"] || {})[s], b = (byTS["Sem 2"] || {})[s]; return `<tr><td>${s}</td><td class="c">${a != null ? a : "—"}</td><td class="c">${b != null ? b : "—"}</td></tr>`; }).join("");
         const o1 = overall("Sem 1"), o2 = overall("Sem 2");
         return `<div class="sheet"><div class="head"><img src="${logoUrl}"><div><h1>KTN Digital Online School</h1><div class="sub">Education for Free · Since 2019 — Report card</div></div></div>
-          <div class="info"><div><b>Student:</b> ${stu.name}</div><div><b>Roll:</b> ${stu.rollNumber || stu.code || "—"}</div><div><b>Class:</b> ${stu.grade || "—"}</div></div>
+          <div class="info"><div><b>Student:</b> ${stu.name}</div><div><b>Roll:</b> ${normRoll(stu.rollNumber || stu.code) || "—"}</div><div><b>Class:</b> ${stu.grade || "—"}</div></div>
           <table><thead><tr><th>Subject</th><th class="c">Sem 1 (/100)</th><th class="c">Sem 2 (/100)</th></tr></thead>
           <tbody>${rows}<tr class="tot"><td>Overall</td><td class="c">${o1 != null ? o1 + "% " + gl(o1) : "—"}</td><td class="c">${o2 != null ? o2 + "% " + gl(o2) : "—"}</td></tr></tbody></table></div>`;
       }).join('<div class="pb"></div>');
@@ -329,6 +340,12 @@ function Students() {
             <Icon name="send" size={14} color="#fff" sw={2.3} style={{ transform: "rotate(90deg)" }} /> {rcBusy ? "Generating…" : "Generate marksheets"}
           </button>
         </div>
+        <div style={{ borderTop: "1px solid #F0DFC4", marginTop: 12, paddingTop: 12 }}>
+          <button className="btnGhost" onClick={cleanRolls} disabled={cleanBusy} style={{ color: "#8A5A12", fontWeight: 700, fontSize: 13 }}>
+            {cleanBusy ? "Cleaning…" : "Clean roll numbers (fix “19283.0” → “19283”)"}
+          </button>
+          {cleanMsg && <span style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700, marginLeft: 8 }}>{cleanMsg}</span>}
+        </div>
       </div>
 
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
@@ -412,7 +429,7 @@ function Students() {
             <div key={s.id} className="card" style={{ padding: "10px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
-                <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>Roll {s.rollNumber || s.code}{s.tempPassword ? ` · temp pw: ${s.tempPassword}` : ""}</div>
+                <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>Roll {normRoll(s.rollNumber || s.code)}{s.tempPassword ? ` · temp pw: ${s.tempPassword}` : ""}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <select className="input" value="" onChange={(e) => e.target.value && assignGrade(s.id, e.target.value)} style={{ margin: 0, width: 110 }}>
@@ -437,7 +454,7 @@ function Students() {
               <div>
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>
-                  {s.rollNumber ? <span>Roll {s.rollNumber} · </span> : null}
+                  {s.rollNumber ? <span>Roll {normRoll(s.rollNumber)} · </span> : null}
                   <b style={{ color: "var(--azure)" }}>{hasFirebase ? (s.email || s.code) : s.code}</b>
                   {s.frozen ? <span style={{ color: "#B76A0E", fontWeight: 700 }}> · locked</span> : null}
                 </div>
@@ -463,7 +480,7 @@ function Students() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>
-                  Roll {s.rollNumber || s.code}{s.extra && s.extra.length ? " · " + (Array.isArray(s.extra) ? s.extra.join(", ") : s.extra) : ""}
+                  Roll {normRoll(s.rollNumber || s.code)}{s.extra && s.extra.length ? " · " + (Array.isArray(s.extra) ? s.extra.join(", ") : s.extra) : ""}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -487,7 +504,7 @@ function Students() {
             <div key={s.id} className="card" style={{ padding: "10px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.75 }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
-                <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>Roll {s.rollNumber || s.code} · alumnus</div>
+                <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>Roll {normRoll(s.rollNumber || s.code)} · alumnus</div>
               </div>
               <button className="btnGhost" onClick={() => remove(s.id)}><Icon name="trash" size={15} color="#FF6B5E" /></button>
             </div>

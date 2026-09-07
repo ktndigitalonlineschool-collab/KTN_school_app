@@ -6,6 +6,7 @@
 // fully explorable offline. Both return the same shapes.
 
 import { hasFirebase, db } from "./firebase";
+import { normRoll } from "./util";
 import {
   collection, getDocs, getDoc, addDoc, setDoc, deleteDoc, doc, query, orderBy, where, writeBatch, runTransaction,
 } from "firebase/firestore";
@@ -510,7 +511,7 @@ export const STUDENT_CSV_COLUMNS = [
 // `rows` come from a parsed CSV (objects keyed by the columns above).
 export async function bulkUpsertStudents(rows) {
   const existing = await listStudents();
-  const byRoll = new Map(existing.map((s) => [String(s.rollNumber || s.code || ""), s]));
+  const byRoll = new Map(existing.map((s) => [normRoll(s.rollNumber || s.code || ""), s]));
   const textKeys = ["name", "grade", "nationality", "gender", "dob", "location",
     "emergencyContact", "postalAddress", "fatherName", "motherName", "mobile", "email", "comments"];
   const norm = (r) => {
@@ -523,11 +524,11 @@ export async function bulkUpsertStudents(rows) {
   const ops = [];
   let updated = 0, created = 0, skipped = 0;
   for (const r of rows) {
-    const roll = String(r.rollNumber || "").trim();
+    const roll = normRoll(r.rollNumber || "");
     if (!roll) { skipped++; continue; }
     const fields = norm(r);
     const ex = byRoll.get(roll);
-    if (ex) { ops.push(["update", ex.id, fields]); updated++; }
+    if (ex) { ops.push(["update", ex.id, { ...fields, rollNumber: roll, code: roll }]); updated++; }
     else { ops.push(["create", null, { rollNumber: roll, code: roll, status: "enrolled", frozen: false, tempPassword: genTempPassword(), ...fields }]); created++; }
   }
 
@@ -551,7 +552,19 @@ export async function bulkUpsertStudents(rows) {
   return { updated, created, skipped };
 }
 
-/* ============ ASSIGNMENTS / WORKSHEETS (v2) ============ */
+// One-tap cleanup: rewrite any roll number stored as "19283.0" -> "19283".
+export async function cleanRollNumbers() {
+  const list = await listStudents();
+  const fixes = list.filter((s) => {
+    const rn = normRoll(s.rollNumber), cd = normRoll(s.code);
+    return (s.rollNumber != null && String(s.rollNumber) !== rn) || (s.code != null && String(s.code) !== cd);
+  });
+  for (const s of fixes) {
+    const roll = normRoll(s.rollNumber || s.code);
+    await updateStudent(s.id, { rollNumber: roll, code: roll });
+  }
+  return fixes.length;
+}
 /* Files live in Google Drive; we store only a link + tiny status records. */
 export async function addAssignment(data) {
   const rec = { ...data, createdAt: new Date().toISOString() };
