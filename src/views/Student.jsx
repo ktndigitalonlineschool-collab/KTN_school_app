@@ -1,0 +1,155 @@
+import { useState, useEffect } from "react";
+import Icon from "../data/icons.jsx";
+import Mascot from "../components/Mascot.jsx";
+import { TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
+import { fmtDate } from "../lib/util";
+import * as store from "../lib/store";
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYCOL = { Mon: "#2F6BFF", Tue: "#1E9E5A", Wed: "#B76A0E", Thu: "#7A3FF2", Fri: "#FF6B5E", Sat: "#0E9BAA", Sun: "#E0457B" };
+
+function Ring({ pct, color = "#fff", track = "rgba(255,255,255,.28)", size = 66 }) {
+  const r = (size - 8) / 2, c = 2 * Math.PI * r, off = c * (1 - (pct || 0) / 100);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth="7" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={off} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+    </svg>
+  );
+}
+
+export default function Student({ user }) {
+  const [marks, setMarks] = useState([]);
+  const [att, setAtt] = useState([]);
+  const [tt, setTt] = useState([]);
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [term, setTerm] = useState(TERMS[0]);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([
+      store.getStudentMarks(user.id, user.grade),
+      store.getStudentAttendance(user.id, user.grade),
+      user.grade ? store.getTimetable(user.grade) : Promise.resolve([]),
+      store.listNews(),
+    ]).then(([m, a, t, n]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setLoading(false); });
+    return () => { live = false; };
+  }, [user.id, user.grade]);
+
+  // attendance
+  const summary = att.reduce((o, r) => { o[r.status] = (o[r.status] || 0) + 1; return o; }, {});
+  const present = (summary.present || 0) + (summary.late || 0);
+  const pct = att.length ? Math.round((present / att.length) * 100) : 0;
+  const bySubjAtt = {};
+  att.forEach((r) => { const s = bySubjAtt[r.subject] || (bySubjAtt[r.subject] = { t: 0, p: 0 }); s.t++; if (r.status !== "absent") s.p++; });
+
+  // marks
+  const termMarks = marks.filter((m) => m.term === term);
+  const mtotal = termMarks.reduce((a, r) => a + r.score, 0);
+  const mpct = termMarks.length ? Math.round((mtotal / (termMarks.length * MARK_MAX)) * 100) : null;
+
+  // today's classes
+  const today = DAYS[new Date().getDay()];
+  const todays = tt.filter((r) => r.day === today);
+  const pinned = news.find((n) => n.pinned) || news[0];
+
+  if (loading) return <p className="para" style={{ marginTop: 20 }}>Loading your dashboard…</p>;
+
+  return (
+    <>
+      {/* HEADER CARD */}
+      <div className="card" style={{ padding: 18, background: "linear-gradient(135deg, var(--navy), var(--azure))", border: "none", display: "flex", alignItems: "center", gap: 14, position: "relative", overflow: "visible" }}>
+        <Mascot size={52} className="mascot-peek" style={{ top: -22, right: 12 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 600 }}>{user.grade || "Student"}</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", fontSize: 21, fontWeight: 800, marginTop: 2, lineHeight: 1.1 }}>{user.name}</div>
+          <div style={{ color: "#FFD9A6", fontSize: 12.5, marginTop: 4 }}>Roll {user.rollNumber || user.code || "—"}</div>
+        </div>
+        <div style={{ position: "relative", width: 66, height: 66 }}>
+          <Ring pct={pct} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 15 }}>{pct}%</div>
+            <div style={{ fontSize: 8, opacity: .85 }}>attend</div>
+          </div>
+        </div>
+      </div>
+
+      {/* TODAY'S CLASSES */}
+      <h3 className="h2" style={{ margin: "22px 0 10px" }}>Today · {fmtDate(new Date())}</h3>
+      {todays.length === 0 ? (
+        <div className="card" style={{ padding: 20, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
+          <Mascot size={72} style={{ margin: "0 auto 6px" }} />
+          <div>No classes scheduled today. 🎉</div>
+        </div>
+      ) : todays.map((r, i) => (
+        <div key={i} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="book" size={20} color="#2F6BFF" sw={2.2} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 15 }}>{r.subject}</div>
+            <div style={{ fontSize: 12, color: "var(--inkSoft)", marginTop: 1 }}>{r.teacher} · {r.time}</div>
+          </div>
+          {r.link
+            ? <a href={r.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "#1E9E5A", padding: "10px 16px" }}><Icon name="globe" size={15} color="#fff" sw={2.4} /> Join</a>
+            : <span style={{ fontSize: 11.5, color: "var(--inkSoft)", fontWeight: 600 }}>{r.time.split("–")[0]}</span>}
+        </div>
+      ))}
+
+      {/* ATTENDANCE */}
+      <h3 className="h2" style={{ margin: "22px 0 10px" }}>Attendance</h3>
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: att.length ? 14 : 0 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 30, color: pct >= 75 ? "#1E9E5A" : "#B76A0E" }}>{pct}%</div>
+          <div style={{ fontSize: 13, color: "var(--inkSoft)", fontWeight: 600 }}>
+            {att.length ? `Present in ${present} of ${att.length} classes.` : "No attendance recorded yet."}
+          </div>
+        </div>
+        {Object.keys(bySubjAtt).map((s) => {
+          const p = Math.round((bySubjAtt[s].p / bySubjAtt[s].t) * 100);
+          return (
+            <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+              <div style={{ width: 74, fontSize: 12.5, fontWeight: 600 }}>{s}</div>
+              <div style={{ flex: 1, height: 9, borderRadius: 999, background: "#EEF2F8", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: p + "%", background: p >= 75 ? "#1E9E5A" : "#B76A0E", borderRadius: 999 }} /></div>
+              <div style={{ width: 62, textAlign: "right", fontSize: 12, color: "var(--inkSoft)", fontWeight: 600 }}>{p}% ({bySubjAtt[s].p}/{bySubjAtt[s].t})</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* MARKS */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "22px 0 10px" }}>
+        <h3 className="h2">Marks</h3>
+        <div className="seg" style={{ margin: 0 }}>{TERMS.map((t) => <button key={t} className={term === t ? "on" : ""} onClick={() => setTerm(t)} style={{ padding: "6px 12px", fontSize: 12 }}>{t}</button>)}</div>
+      </div>
+      <div className="card" style={{ padding: 16 }}>
+        {termMarks.length === 0 ? (
+          <div style={{ color: "var(--inkSoft)", fontSize: 14, textAlign: "center" }}>No {term} marks published yet.</div>
+        ) : (<>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 26, color: "var(--azure)" }}>{mpct}%</div>
+            <div style={{ fontSize: 12.5, color: "var(--inkSoft)", fontWeight: 600 }}>overall · {term}</div>
+          </div>
+          {termMarks.map((r) => (
+            <div key={r.subject} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+              <div style={{ width: 74, fontSize: 13, fontWeight: 600 }}>{r.subject}</div>
+              <div style={{ flex: 1, height: 10, borderRadius: 999, background: "#EEF2F8", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: r.score + "%", background: "var(--azure)", borderRadius: 999 }} /></div>
+              <div style={{ width: 44, textAlign: "right", fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 13 }}>{r.score}</div>
+            </div>
+          ))}
+        </>)}
+      </div>
+
+      {/* NOTICE */}
+      {pinned && (<>
+        <h3 className="h2" style={{ margin: "22px 0 10px" }}>Notice</h3>
+        <div className="card" style={{ padding: 16 }}>
+          {pinned.pinned && <span className="pillBadge" style={{ background: "var(--tintAmber)", color: "#B76A0E" }}><Icon name="pin" size={12} color="#B76A0E" sw={2.4} /> Pinned</span>}
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 15.5, margin: "9px 0 5px" }}>{pinned.title}</div>
+          <p className="para" style={{ margin: 0, fontSize: 13 }}>{pinned.body}</p>
+        </div>
+      </>)}
+      <div style={{ height: 10 }} />
+    </>
+  );
+}

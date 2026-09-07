@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// KTN Digital Online School — Firestore security rules
+// Paste these into Firebase console → Firestore Database → Rules → Publish.
+//
+// Summary of who can do what:
+//  - Public site (news, gallery, timetable): anyone can READ. Only admin writes.
+//  - Admission requests: anyone can CREATE (the Apply form). Only admin reads.
+//  - Students / staff / users: only admin manages; teachers read their own class.
+//  - Marks & attendance: teacher writes their OWN subject+grade; a student reads
+//    only their OWN records; admin can do everything.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function hasRole() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function isAdmin()   { return hasRole() && userDoc().role == 'admin'; }
+    function isTeacher() { return hasRole() && userDoc().role == 'teacher'; }
+    function isStudent() { return hasRole() && userDoc().role == 'student'; }
+    function myGrades()  { return userDoc().grades; }
+    function mySubject() { return userDoc().subject; }
+    function myStudentId() { return userDoc().studentId; }
+
+    // ---- Public content ----
+    match /news/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /gallery/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /timetable/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /directory/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /content/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /counters/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---- Admission requests (public Apply form) ----
+    match /applications/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---- Contact messages (public Contact form) ----
+    match /messages/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---- Accounts & roles ----
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // A person may create only their OWN account, and only as "pending".
+      allow create: if signedIn() && request.auth.uid == uid
+                     && request.resource.data.role == 'pending';
+      // Only an admin can grant a real role or change/remove accounts.
+      allow update, delete: if isAdmin();
+    }
+    match /students/{id} {
+      allow read: if isAdmin() || (isTeacher() && resource.data.grade in myGrades());
+      allow write: if isAdmin();
+    }
+    match /staff/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---- Marks (one doc per student: {studentId, grade, subject, term, score}) ----
+    match /marks/{id} {
+      allow read: if isAdmin()
+        || (isTeacher() && resource.data.subject == mySubject() && resource.data.grade in myGrades())
+        || (isStudent() && resource.data.studentId == myStudentId());
+      allow create, update: if isAdmin()
+        || (isTeacher()
+            && request.resource.data.subject == mySubject()
+            && request.resource.data.grade in myGrades());
+      allow delete: if isAdmin();
+    }
+
+    // ---- Attendance (one doc per student: {studentId, grade, subject, date, status}) ----
+    match /attendance/{id} {
+      allow read: if isAdmin()
+        || (isTeacher() && resource.data.subject == mySubject() && resource.data.grade in myGrades())
+        || (isStudent() && resource.data.studentId == myStudentId());
+      allow create, update: if isAdmin()
+        || (isTeacher()
+            && request.resource.data.subject == mySubject()
+            && request.resource.data.grade in myGrades());
+      allow delete: if isAdmin();
+    }
+  }
+}
