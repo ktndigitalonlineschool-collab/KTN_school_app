@@ -5,7 +5,7 @@ import * as store from "../lib/store";
 
 const CONTACT = [
   ["mail", "Email", "ktndigitalonlineschool@gmail.com"],
-  ["phone", "Phone", "Add your number here"],
+  ["phone", "Phone", "+82 10 9313 7860"],
   ["mappin", "Location", "South Korea · fully online"],
 ];
 

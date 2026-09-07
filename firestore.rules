@@ -43,6 +43,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    match /classlinks/{id} {
+      allow read: if true;
+      allow write: if isTeacher() || isAdmin();
+    }
     match /directory/{id} {
       allow read: if true;
       allow write: if isAdmin();
@@ -63,12 +67,10 @@ service cloud.firestore {
     }
     // ---- Assignment submissions (student done / teacher reviewed) ----
     match /submissions/{id} {
-      allow read: if isAdmin()
-        || (isStudent() && resource.data.studentId == myStudentId())
-        || (isTeacher() && resource.data.grade in myGrades());
-      allow create, update: if isAdmin()
-        || (isStudent() && request.resource.data.studentId == myStudentId())
-        || (isTeacher() && request.resource.data.grade in myGrades());
+      allow read: if isAdmin() || isTeacher()
+        || (isStudent() && resource.data.studentId == myStudentId());
+      allow create, update: if isAdmin() || isTeacher()
+        || (isStudent() && request.resource.data.studentId == myStudentId());
       allow delete: if isAdmin();
     }
 
@@ -87,9 +89,10 @@ service cloud.firestore {
     // ---- Accounts & roles ----
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      // A person may create only their OWN account, and only as "pending".
-      allow create: if signedIn() && request.auth.uid == uid
-                     && request.resource.data.role == 'pending';
+      // Admins create student/teacher login docs on Accept/enrol. Anyone else may
+      // only create their OWN account, and only as "pending" (self sign-up).
+      allow create: if isAdmin()
+                     || (signedIn() && request.auth.uid == uid && request.resource.data.role == 'pending');
       // Only an admin can grant a real role or change/remove accounts.
       allow update, delete: if isAdmin();
     }

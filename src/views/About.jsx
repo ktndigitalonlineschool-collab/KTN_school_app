@@ -12,7 +12,7 @@ const OFFER = [
 ];
 const CONTACT = [
   ["mail", "Email", "ktndigitalonlineschool@gmail.com"],
-  ["phone", "Phone", "Add your number here"],
+  ["phone", "Phone", "+82 10 9313 7860"],
   ["mappin", "Location", "South Korea · fully online"],
 ];
 
@@ -101,7 +101,7 @@ export default function About({ site }) {
         ))}
       </div>
       <div style={{ height: 8 }} />
-      <div style={{ textAlign: "center", fontSize: 11, color: "var(--inkSoft)", marginTop: 4 }}>KTN Digital School app · v2.0</div>
+      <div style={{ textAlign: "center", fontSize: 11, color: "var(--inkSoft)", marginTop: 4 }}>KTN Digital Online School app · v2.0</div>
     </>
   );
 }

@@ -5,7 +5,7 @@ import SectionTitle from "../components/SectionTitle.jsx";
 import StudentFields, { EMPTY_STUDENT } from "../components/StudentFields.jsx";
 import TeacherAssignments from "../components/TeacherAssignments.jsx";
 import ImagePicker from "../components/ImagePicker.jsx";
-import { GRADES, SUBJECTS_BY_GRADE, ALL_SUBJECTS, assignmentLabel } from "../data/school";
+import { GRADES, SUBJECTS_BY_GRADE, ALL_SUBJECTS, assignmentLabel, deriveAssignments } from "../data/school";
 import { TT, DAYCOL, ROTATING, TEACH as TEACH_DEF, PRESS as PRESS_DEF, FOUNDERS as FOUNDERS_DEF, LEADER_MESSAGE as LEADER_DEF, MILESTONES as MILESTONES_DEF } from "../data/content";
 import { TEACHERS as BUILTIN_TEACHERS } from "../data/teachers";
 import { ROSTER, ROSTER_MAX_ROLL } from "../data/roster";
@@ -182,6 +182,25 @@ function Students() {
     finally { setPromoting(false); }
   }
   async function toggleFreeze(s) { const frozen = !s.frozen; await store.updateStudent(s.id, { frozen }); setList((l) => l.map((x) => (x.id === s.id ? { ...x, frozen } : x))); }
+
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_STUDENT);
+  function startEdit(s) {
+    setEditId(s.id);
+    setEditForm({
+      name: s.name || "", nationality: s.nationality || "", gender: s.gender || EMPTY_STUDENT.gender, dob: s.dob || "",
+      location: s.location || "", emergencyContact: s.emergencyContact || "", postalAddress: s.postalAddress || "",
+      grade: s.grade || EMPTY_STUDENT.grade, extra: Array.isArray(s.extra) ? s.extra : (s.extra ? String(s.extra).split(/[;,]/).map((x) => x.trim()).filter(Boolean) : []),
+      fatherName: s.fatherName || "", motherName: s.motherName || "", mobile: s.mobile || "", email: s.email || "", comments: s.comments || "",
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  async function saveEdit() {
+    const patch = { ...editForm };
+    await store.updateStudent(editId, patch);
+    setList((l) => l.map((x) => (x.id === editId ? { ...x, ...patch } : x)));
+    setEditId(null);
+  }
   async function invite(s) {
     setInviteMsg("");
     if (!hasFirebase) { setInviteMsg("Connect Firebase to send login invites."); return; }
@@ -241,6 +260,20 @@ function Students() {
 
   return (
     <>
+      {editId && (
+        <div className="card" style={{ padding: 16, marginBottom: 16, borderColor: "var(--azure)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--ink)" }}>Edit student</div>
+            <button className="btnGhost" onClick={() => setEditId(null)}><Icon name="x" size={16} color="#52617A" /></button>
+          </div>
+          <StudentFields form={editForm} setForm={setEditForm} />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btnP" onClick={saveEdit} style={{ flex: 1, justifyContent: "center" }}>Save changes</button>
+            <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 16px", fontWeight: 600 }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
         <div style={{ fontSize: 13, color: "var(--navy)", fontWeight: 700, marginBottom: 4 }}>Import existing students</div>
         <div style={{ fontSize: 12, color: "var(--navy)", marginBottom: 10, lineHeight: 1.45 }}>
@@ -330,6 +363,7 @@ function Students() {
                   {GRADES.map((g) => <option key={g}>{g}</option>)}
                   <option value="Extra only">Special classes only</option>
                 </select>
+                <button className="btnGhost" onClick={() => startEdit(s)} title="Edit student" style={{ padding: 7 }}><Icon name="edit" size={14} color="#2F6BFF" /></button>
                 {hasFirebase && <button className="btnGhost" onClick={() => invite(s)} title="Send set-password email" style={{ padding: 7 }}><Icon name="mail" size={14} color="#2F6BFF" /></button>}
                 <button className="btnGhost" onClick={() => remove(s.id)}><Icon name="trash" size={15} color="#FF6B5E" /></button>
               </div>
@@ -352,6 +386,7 @@ function Students() {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button className="btnGhost" onClick={() => startEdit(s)} title="Edit student" style={{ padding: 7 }}><Icon name="edit" size={14} color="#2F6BFF" /></button>
                 {hasFirebase && <button className="btnGhost" onClick={() => invite(s)} title="Send set-password email" style={{ padding: 7 }}><Icon name="mail" size={14} color="#2F6BFF" /></button>}
                 <button className="btnGhost" onClick={() => toggleFreeze(s)} title={s.frozen ? "Unlock details (allow parent to edit)" : "Lock details"} style={{ padding: 7 }}>
                   <Icon name="lock" size={14} color={s.frozen ? "#B76A0E" : "#9AA7BE"} />
@@ -379,6 +414,7 @@ function Students() {
                   <option value="">Move to…</option>
                   {GRADES.map((g) => <option key={g}>{g}</option>)}
                 </select>
+                <button className="btnGhost" onClick={() => startEdit(s)} title="Edit student" style={{ padding: 7 }}><Icon name="edit" size={14} color="#2F6BFF" /></button>
                 {hasFirebase && <button className="btnGhost" onClick={() => invite(s)} title="Send set-password email" style={{ padding: 7 }}><Icon name="mail" size={14} color="#2F6BFF" /></button>}
                 <button className="btnGhost" onClick={() => remove(s.id)}><Icon name="trash" size={15} color="#FF6B5E" /></button>
               </div>
@@ -517,10 +553,26 @@ function Messages() {
 /* ---------- Teachers (staff accounts) ---------- */
 function Teachers() {
   const [list, setList] = useState(null);
-  const [form, setForm] = useState({ name: "", assignments: [], email: "", password: "" });
+  const [form, setForm] = useState({ name: "", assignments: [], joined: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({ name: "", assignments: [], joined: "" });
   useEffect(() => { store.listStaff().then(setList); }, []);
+
+  function startEdit(s) {
+    const asg = s.assignments && s.assignments.length ? s.assignments : (s.grades || []).map((g) => ({ subject: s.subject, grade: g }));
+    setEditId(s.id); setEditForm({ name: s.name || "", assignments: asg, joined: s.joined || "" });
+  }
+  async function saveEdit(s) {
+    const patch = { name: editForm.name.trim(), assignments: editForm.assignments, joined: editForm.joined.trim() };
+    const { subject, grades } = deriveAssignments(editForm.assignments);
+    const full = { ...patch, subject, grades };
+    await store.updateStaff(s.id, full);
+    if (s.uid) await store.updateUserDoc(s.uid, full);
+    setList((l) => l.map((x) => (x.id === s.id ? { ...x, ...full } : x)));
+    setEditId(null);
+  }
 
   async function add() {
     setErr("");
@@ -528,10 +580,10 @@ function Teachers() {
     if (hasFirebase && (!form.email.trim() || form.password.length < 6)) { setErr("Enter an email and a password of at least 6 characters for the teacher's login."); return; }
     setBusy(true);
     try {
-      const rec = await store.addStaffFromAssignments({ name: form.name.trim(), assignments: form.assignments });
-      if (hasFirebase) await createTeacherAccount({ email: form.email.trim(), password: form.password, staffId: rec.id, name: rec.name, assignments: form.assignments });
+      const rec = await store.addStaffFromAssignments({ name: form.name.trim(), assignments: form.assignments, joined: form.joined.trim() });
+      if (hasFirebase) await createTeacherAccount({ email: form.email.trim(), password: form.password, staffId: rec.id, name: rec.name, assignments: form.assignments, joined: form.joined.trim() });
       setList((l) => [...(l || []), { ...rec, email: form.email.trim() }]);
-      setForm({ name: "", assignments: [], email: "", password: "" });
+      setForm({ name: "", assignments: [], joined: "", email: "", password: "" });
     } catch (e) { setErr(e.message || "Could not create the account."); } finally { setBusy(false); }
   }
   async function remove(id) { await store.removeStaff(id); setList((l) => l.filter((s) => s.id !== id)); }
@@ -542,6 +594,8 @@ function Teachers() {
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Add a teacher login</div>
         <input className="input" placeholder="Teacher's name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         <TeacherAssignments value={form.assignments} onChange={(a) => setForm((f) => ({ ...f, assignments: a }))} />
+        <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Joined KTN (year)</label>
+        <input className="input" placeholder="e.g. 2019" inputMode="numeric" value={form.joined} onChange={(e) => setForm((f) => ({ ...f, joined: e.target.value.replace(/[^0-9]/g, "").slice(0, 4) }))} />
         {hasFirebase && (<>
           <input className="input" type="email" placeholder="Teacher's login email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
           <input className="input" type="text" placeholder="Temporary password (min 6 chars)" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
@@ -553,16 +607,35 @@ function Teachers() {
       </div>
       {list === null ? <p className="para">Loading…</p> : (list || []).map((s) => {
         const asg = s.assignments && s.assignments.length ? s.assignments : (s.grades || []).map((g) => ({ subject: s.subject, grade: g }));
+        if (editId === s.id) {
+          return (
+            <div key={s.id} className="card" style={{ padding: 15, marginBottom: 8, borderColor: "var(--azure)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Edit teacher</div>
+              <input className="input" placeholder="Teacher's name" value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
+              <TeacherAssignments value={editForm.assignments} onChange={(a) => setEditForm((f) => ({ ...f, assignments: a }))} />
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Joined KTN (year)</label>
+              <input className="input" placeholder="e.g. 2019" inputMode="numeric" value={editForm.joined} onChange={(e) => setEditForm((f) => ({ ...f, joined: e.target.value.replace(/[^0-9]/g, "").slice(0, 4) }))} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btnP" onClick={() => saveEdit(s)} style={{ flex: 1, justifyContent: "center" }}>Save changes</button>
+                <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 16px", fontWeight: 600 }}>Cancel</button>
+              </div>
+              <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Email/password aren't changed here — the teacher can reset their own password from the sign-in screen.</p>
+            </div>
+          );
+        }
         return (
-          <div key={s.id} className="card" style={{ padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div key={s.id} className="card" style={{ padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>{s.name}{s.joined ? <span style={{ fontSize: 11, color: "var(--inkSoft)", fontWeight: 600 }}> · since {s.joined}</span> : ""}</div>
               <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>
                 <b style={{ color: "var(--azure)" }}>{hasFirebase ? (s.email || s.code) : s.code}</b>
                 {asg.length ? " · " + asg.map(assignmentLabel).join(", ") : " · no classes set"}
               </div>
             </div>
-            <button className="btnGhost" onClick={() => remove(s.id)} aria-label="Remove"><Icon name="trash" size={15} color="#FF6B5E" /></button>
+            <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+              <button className="btnGhost" onClick={() => startEdit(s)} aria-label="Edit" style={{ padding: 7 }}><Icon name="edit" size={15} color="#2F6BFF" /></button>
+              <button className="btnGhost" onClick={() => remove(s.id)} aria-label="Remove" style={{ padding: 7 }}><Icon name="trash" size={15} color="#FF6B5E" /></button>
+            </div>
           </div>
         );
       })}
@@ -829,6 +902,7 @@ function SiteContent() {
   const [founders, setFounders] = useState(FOUNDERS_DEF);
   const [milestones, setMilestones] = useState(MILESTONES_DEF);
   const [calendarImage, setCalendarImage] = useState("");
+  const [stats, setStats] = useState({ years: "6", students: "100+", grades: "7", free: "Free" });
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -842,9 +916,16 @@ function SiteContent() {
       setFounders(s.founders && s.founders.length ? s.founders : FOUNDERS_DEF);
       setMilestones(s.milestones && s.milestones.length ? s.milestones : MILESTONES_DEF);
       setCalendarImage(s.calendarImage || "");
+      setStats(s.stats || { years: "6", students: "100+", grades: "7", free: "Free" });
       setLoaded(true);
     });
   }, []);
+
+  async function useLiveCount() {
+    const all = await store.listStudents();
+    const rounded = Math.floor(all.length / 50) * 50;
+    setStats((st) => ({ ...st, students: (rounded < 50 ? all.length : rounded) + "+" }));
+  }
 
   async function save() {
     setBusy(true); setSaved(false);
@@ -852,7 +933,7 @@ function SiteContent() {
       await store.saveSiteContent({
         taglines: taglines.split("\n").map((x) => x.trim()).filter(Boolean),
         teach: teach.split("\n").map((x) => x.trim()).filter(Boolean),
-        press, leaderMessage: leader, founders, milestones, calendarImage,
+        press, leaderMessage: leader, founders, milestones, calendarImage, stats,
       });
       setSaved(true);
     } finally { setBusy(false); }
@@ -875,6 +956,19 @@ function SiteContent() {
         <label style={lbl}>Title</label><input className="input" value={press.title} onChange={(e) => setPress({ ...press, title: e.target.value })} />
         <label style={lbl}>Link</label><input className="input" value={press.url} onChange={(e) => setPress({ ...press, url: e.target.value })} />
         <label style={lbl}>Summary</label><textarea className="input" rows={3} value={press.blurb} onChange={(e) => setPress({ ...press, blurb: e.target.value })} style={{ resize: "vertical" }} />
+      </Section>
+
+      <Section title="Home — headline statistics (update each year)">
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>Years</label><input className="input" value={stats.years} onChange={(e) => setStats((s) => ({ ...s, years: e.target.value }))} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>Students / year</label><input className="input" value={stats.students} onChange={(e) => setStats((s) => ({ ...s, students: e.target.value }))} /></div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>Grade levels</label><input className="input" value={stats.grades} onChange={(e) => setStats((s) => ({ ...s, grades: e.target.value }))} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>Cost label</label><input className="input" value={stats.free} onChange={(e) => setStats((s) => ({ ...s, free: e.target.value }))} /></div>
+        </div>
+        <button className="btnGhost" onClick={useLiveCount} style={{ color: "var(--azure)", fontWeight: 700, fontSize: 13, marginTop: 2 }}>Use current student count (rounded)</button>
+        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "6px 2px 0" }}>Type “100+”, “150+”, etc. The button reads your live roster and rounds down to the nearest 50 (e.g. 112 → 100+, 164 → 150+).</p>
       </Section>
 
       <Section title="Academic calendar image (replace each year)">

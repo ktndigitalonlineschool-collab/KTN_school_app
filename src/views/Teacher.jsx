@@ -3,7 +3,7 @@ import Icon from "../data/icons.jsx";
 import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
-import { fmtDate } from "../lib/util";
+import { fmtDate, classCancelledToday } from "../lib/util";
 import { hasDrive, uploadToDrive } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
 import * as store from "../lib/store";
@@ -357,6 +357,47 @@ function TeacherAssignments({ grades, subject }) {
   );
 }
 
+/* ---------------- Teacher Class links (join link + cancel) ---------------- */
+function ClassLinks({ classes }) {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    Promise.all(classes.map(async (c) => {
+      const cl = await store.getClassLink(c.grade, c.subject);
+      return { grade: c.grade, subject: c.subject, link: (cl && cl.link) || "", cancelled: classCancelledToday(cl), reason: (cl && cl.reason) || "", msg: "" };
+    })).then(setRows);
+  }, []);
+  function upd(i, patch) { setRows((r) => r.map((x, k) => (k === i ? { ...x, ...patch } : x))); }
+  async function save(i) {
+    const r = rows[i];
+    const todayStr = new Date().toISOString().slice(0, 10);
+    await store.setClassLink(r.grade, r.subject, { link: r.link.trim(), cancelled: r.cancelled, reason: r.reason.trim(), cancelledOn: r.cancelled ? todayStr : "" });
+    upd(i, { msg: "Saved ✓" }); setTimeout(() => upd(i, { msg: "" }), 1800);
+  }
+  if (rows === null) return <p className="para">Loading…</p>;
+  if (rows.length === 0) return <div className="card" style={{ padding: 20, color: "var(--inkSoft)", fontSize: 14 }}>You have no grade classes to set links for.</div>;
+  return (
+    <>
+      <p className="para" style={{ margin: "0 0 14px" }}>Set the online class link students will use. If you can't hold a class, tick “class cancelled” and add a reason — students will see it instead of the link.</p>
+      {rows.map((r, i) => (
+        <div key={i} className="card" style={{ padding: 16, marginBottom: 12 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 10 }}>{r.subject} · {r.grade}</div>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Online class link (Zoom / Meet)</label>
+          <input className="input" placeholder="https://…" value={r.link} onChange={(e) => upd(i, { link: e.target.value })} disabled={r.cancelled} />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--inkSoft)", margin: "4px 0 10px", cursor: "pointer" }}>
+            <input type="checkbox" checked={r.cancelled} onChange={(e) => upd(i, { cancelled: e.target.checked })} /> Class cancelled
+          </label>
+          {r.cancelled && <input className="input" placeholder="Reason shown to students (e.g. Teacher unwell today)" value={r.reason} onChange={(e) => upd(i, { reason: e.target.value })} />}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button className="btnP" onClick={() => save(i)} style={{ justifyContent: "center" }}>Save</button>
+            {r.msg && <span style={{ color: "#1E7A45", fontWeight: 700, fontSize: 13 }}>{r.msg}</span>}
+          </div>
+        </div>
+      ))}
+      <div style={{ height: 8 }} />
+    </>
+  );
+}
+
 /* ---------------- Teacher shell ---------------- */
 export default function Teacher({ user }) {
   const [tab, setTab] = useState("today");
@@ -376,11 +417,17 @@ export default function Teacher({ user }) {
     </div>;
   }
 
-  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"]];
+  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["link", "Class link", "globe"]];
 
   return (
     <>
-      <SectionTitle eyebrow={`Welcome, ${user.name.split(" ")[0]}`} title={tab === "today" ? "Your day" : tab === "attendance" ? "Attendance" : tab === "marks" ? "Enter marks" : "Assignments"} />
+      <SectionTitle eyebrow={`Welcome, ${user.name.split(" ")[0]}`} title={tab === "today" ? "Your day" : tab === "attendance" ? "Attendance" : tab === "marks" ? "Enter marks" : tab === "link" ? "Class link" : "Assignments"} />
+      {user.joined && (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--tintBlue)", color: "var(--azure)", padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+          <Icon name="award" size={13} color="#2F6BFF" sw={2.4} /> Teaching since {user.joined}
+          {(() => { const y = new Date().getFullYear() - parseInt(user.joined, 10); return y > 0 ? ` · ${y} ${y === 1 ? "year" : "years"} of experience` : ""; })()}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {TABS.map(([k, label, ic]) => (
           <button key={k} className="btnP" onClick={() => setTab(k)} style={{ background: tab === k ? "var(--azure)" : "#fff", color: tab === k ? "#fff" : "var(--inkSoft)", border: "1px solid " + (tab === k ? "var(--azure)" : "var(--line)") }}>
@@ -389,6 +436,7 @@ export default function Teacher({ user }) {
         ))}
       </div>
 
+      {tab === "link" && <ClassLinks classes={regular} />}
       {tab === "work" && <TeacherAssignments grades={[...new Set(regular.map((a) => a.grade))]} subject={regular[0] ? regular[0].subject : (user.subject || "")} />}
 
       {tab === "today" && (

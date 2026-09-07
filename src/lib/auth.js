@@ -32,6 +32,7 @@ function sessionFromRole(user, roleData) {
     rollNumber: roleData.rollNumber || "",
     subject: roleData.subject,
     grades: roleData.grades || [],
+    joined: roleData.joined || "",
   };
 }
 
@@ -103,10 +104,10 @@ export async function createStudentAccount({ email, password, studentId, name, g
 }
 
 // Create a teacher's login and link it to their record.
-export async function createTeacherAccount({ email, password, staffId, name, assignments }) {
+export async function createTeacherAccount({ email, password, staffId, name, assignments, joined }) {
   const uid = await createLogin(email, password);
   const { subject, grades } = deriveAssignments(assignments);
-  await setUserDoc(uid, { role: "teacher", staffId, name, subject, grades, assignments: assignments || [] });
+  await setUserDoc(uid, { role: "teacher", staffId, name, subject, grades, assignments: assignments || [], joined: joined || "" });
   await setStaffUid(staffId, uid);
   return uid;
 }

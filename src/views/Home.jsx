@@ -42,9 +42,11 @@ export default function Home({ news, site, onGo, onLightbox }) {
   const rotRef = useRef(null);
   const voiceRef = useRef(null);
 
-  const years = useCountUp(6, !reduce);
-  const students = useCountUp(100, !reduce);
-  const grades = useCountUp(7, !reduce);
+  const years = useCountUp(6, false);
+  const students = useCountUp(100, false);
+  const grades = useCountUp(7, false);
+  const sd = (site && site.stats) || {};
+  const st = { years: sd.years || "6", students: sd.students || "100+", grades: sd.grades || "7", free: sd.free || "Free" };
 
   useEffect(() => {
     if (reduce) return;
@@ -100,13 +102,11 @@ export default function Home({ news, site, onGo, onLightbox }) {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* STATS (editable via Admin → Content) */}
       <div className="card" style={{ marginTop: 16, padding: "16px 8px", display: "grid", gridTemplateColumns: "repeat(4,1fr)" }}>
-        {[[years, "Years strong", ""], [students, "Students / year", "+"], [grades, "Grade levels", ""], ["Free", "Always", ""]].map((s, i) => (
+        {[[st.years, "Years strong"], [st.students, "Students / year"], [st.grades, "Grade levels"], [st.free, "Always"]].map((s, i) => (
           <div key={i} style={{ textAlign: "center", borderRight: i < 3 ? "1px solid var(--line)" : "none" }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 21, fontWeight: 800, color: "var(--azure)", lineHeight: 1 }}>
-              {s[0]}{s[2]}
-            </div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 21, fontWeight: 800, color: "var(--azure)", lineHeight: 1 }}>{s[0]}</div>
             <div style={{ fontSize: 10, color: "var(--inkSoft)", fontWeight: 600, marginTop: 5 }}>{s[1]}</div>
           </div>
         ))}

@@ -3,15 +3,18 @@ import Icon from "../data/icons.jsx";
 import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { TT_ORDER, TT, DAYCOL } from "../data/content";
+import { classCancelledToday } from "../lib/util";
 import * as store from "../lib/store";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function Classes({ grade, onGrade }) {
   const [extra, setExtra] = useState([]);
+  const [cls, setCls] = useState({});
   useEffect(() => {
-    if (grade === "Extra Classes") { setExtra([]); return; }
+    if (grade === "Extra Classes") { setExtra([]); setCls({}); return; }
     store.listTimetableExtra(grade).then(setExtra).catch(() => setExtra([]));
+    store.listClassLinksByGrade(grade).then(setCls).catch(() => setCls({}));
   }, [grade]);
   const rows = extra.length
     ? extra.map((r) => ({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link: r.link }))
@@ -55,11 +58,18 @@ export default function Classes({ grade, onGrade }) {
                   <div style={{ fontSize: 12, color: "var(--inkSoft)", fontWeight: 600, marginTop: 4, whiteSpace: "nowrap" }}>{row.time}</div>
                 </div>
               </div>
-              {row.link && (
-                <a href={row.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ marginTop: 12, width: "100%", justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}>
-                  <Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class
-                </a>
-              )}
+              {(() => {
+                const cl = cls[row.subject];
+                if (classCancelledToday(cl)) return (
+                  <div style={{ marginTop: 12, background: "#FCEDEC", color: "#C0392B", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, fontWeight: 600 }}>🚫 No class — {cl.reason || "cancelled by the teacher"}</div>
+                );
+                const link = (cl && cl.link) || row.link;
+                return link ? (
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ marginTop: 12, width: "100%", justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}>
+                    <Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class
+                  </a>
+                ) : null;
+              })()}
             </div>
           );
         })}

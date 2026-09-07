@@ -144,12 +144,20 @@ export async function findStaffByCode(code) {
   const list = await listStaff();
   return list.find((s) => (s.code || "").toLowerCase() === code.toLowerCase()) || null;
 }
-export async function addStaffFromAssignments({ name, assignments }) {
+export async function addStaffFromAssignments({ name, assignments, joined }) {
   const { subject, grades } = deriveAssignments(assignments);
-  return addStaff({ name, subject, grades, assignments: assignments || [] });
+  return addStaff({ name, subject, grades, assignments: assignments || [], joined: joined || "" });
 }
 export async function setStaffUid(id, uid) {
   if (hasFirebase) { await setDoc(doc(db, "staff", id), { uid }, { merge: true }); return; }
+}
+export async function updateStaff(id, patch) {
+  if (hasFirebase) { await setDoc(doc(db, "staff", id), patch, { merge: true }); return; }
+  const list = lsSeeded("ktn_staff", SEED_STAFF); lsSet("ktn_staff", list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+}
+export async function updateUserDoc(uid, patch) {
+  if (!hasFirebase || !uid) return;
+  await setDoc(doc(db, "users", uid), patch, { merge: true });
 }
 
 /* ============ MARKS ============ */
@@ -580,6 +588,28 @@ export async function listSubmissions(assignmentId) {
     snap.docs.forEach((d) => { const s = d.data(); map[s.studentId] = s; });
   } else {
     const all = lsGet("ktn_submissions", {}); Object.values(all).forEach((s) => { if (s.assignmentId === assignmentId) map[s.studentId] = s; });
+  }
+  return map;
+}
+
+/* ============ CLASS LINKS (teacher-managed join link + cancel) ============ */
+const clId = (g, s) => `${g}__${s}`;
+export async function getClassLink(grade, subject) {
+  if (hasFirebase) { const snap = await getDoc(doc(db, "classlinks", clId(grade, subject))); return snap.exists() ? snap.data() : null; }
+  const all = lsGet("ktn_classlinks", {}); return all[clId(grade, subject)] || null;
+}
+export async function setClassLink(grade, subject, patch) {
+  const data = { grade, subject, ...patch, updatedAt: new Date().toISOString() };
+  if (hasFirebase) { await setDoc(doc(db, "classlinks", clId(grade, subject)), data, { merge: true }); return data; }
+  const all = lsGet("ktn_classlinks", {}); all[clId(grade, subject)] = { ...(all[clId(grade, subject)] || {}), ...data }; lsSet("ktn_classlinks", all); return data;
+}
+export async function listClassLinksByGrade(grade) {
+  const map = {};
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "classlinks"), where("grade", "==", grade)));
+    snap.docs.forEach((d) => { const c = d.data(); map[c.subject] = c; });
+  } else {
+    const all = lsGet("ktn_classlinks", {}); Object.values(all).forEach((c) => { if (c.grade === grade) map[c.subject] = c; });
   }
   return map;
 }

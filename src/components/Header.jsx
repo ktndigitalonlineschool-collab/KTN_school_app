@@ -12,8 +12,8 @@ export default function Header({ onSignIn }) {
           </div>
         </div>
         <div>
-          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 18.5, letterSpacing: "-.5px", lineHeight: 1 }}>
-            <span style={{ color: "var(--amber)" }}>KTN</span> <span style={{ color: "var(--navy)" }}>Digital School</span>
+          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 16, letterSpacing: "-.4px", lineHeight: 1 }}>
+            <span style={{ color: "var(--amber)" }}>KTN</span> <span style={{ color: "var(--navy)" }}>Digital Online School</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
             <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--amber)" }} />
