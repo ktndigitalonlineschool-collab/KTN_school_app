@@ -203,6 +203,21 @@ export async function getStudentMarks(studentId, grade) {
   });
   return out;
 }
+// All marks for a whole grade, grouped by studentId (admin report cards).
+export async function getGradeMarks(grade) {
+  const map = {};
+  if (hasFirebase) {
+    const snap = await getDocs(query(collection(db, "marks"), where("grade", "==", grade)));
+    snap.docs.forEach((d) => { const m = d.data(); (map[m.studentId] = map[m.studentId] || []).push({ subject: m.subject, term: m.term, score: m.score }); });
+  } else {
+    const all = lsGet("ktn_marks", null) || SEED_MARKS;
+    Object.keys(all).forEach((k) => {
+      const [g, subject, term] = k.split("|");
+      if (g === grade) Object.keys(all[k]).forEach((sid) => { (map[sid] = map[sid] || []).push({ subject, term, score: all[k][sid] }); });
+    });
+  }
+  return map;
+}
 
 /* ============ ATTENDANCE (per subject class) ============ */
 // Cloud: one document per student ("studentId__Subject__Date"). On-device (demo):

@@ -5,7 +5,8 @@ import SectionTitle from "../components/SectionTitle.jsx";
 import StudentFields, { EMPTY_STUDENT } from "../components/StudentFields.jsx";
 import TeacherAssignments from "../components/TeacherAssignments.jsx";
 import ImagePicker from "../components/ImagePicker.jsx";
-import { GRADES, SUBJECTS_BY_GRADE, ALL_SUBJECTS, assignmentLabel, deriveAssignments } from "../data/school";
+import { GRADES, SUBJECTS_BY_GRADE, ALL_SUBJECTS, assignmentLabel, deriveAssignments, MARK_MAX, TERMS } from "../data/school";
+import logo from "../assets/logo.png";
 import { TT, DAYCOL, ROTATING, TEACH as TEACH_DEF, PRESS as PRESS_DEF, FOUNDERS as FOUNDERS_DEF, LEADER_MESSAGE as LEADER_DEF, MILESTONES as MILESTONES_DEF } from "../data/content";
 import { TEACHERS as BUILTIN_TEACHERS } from "../data/teachers";
 import { ROSTER, ROSTER_MAX_ROLL } from "../data/roster";
@@ -201,6 +202,47 @@ function Students() {
     setList((l) => l.map((x) => (x.id === editId ? { ...x, ...patch } : x)));
     setEditId(null);
   }
+
+  const [rcGrade, setRcGrade] = useState(GRADES[0]);
+  const [rcBusy, setRcBusy] = useState(false);
+  async function generateMarksheets() {
+    setRcBusy(true);
+    try {
+      const studentsInGrade = (list || []).filter((s) => s.grade === rcGrade).sort((a, b) => (a.rollNumber || 0) - (b.rollNumber || 0));
+      if (studentsInGrade.length === 0) { alert(`No students in ${rcGrade}.`); return; }
+      const marksMap = await store.getGradeMarks(rcGrade);
+      const logoUrl = (() => { try { return new URL(logo, window.location.href).href; } catch (e) { return logo; } })();
+      const gl = (pct) => pct == null ? "" : pct >= 90 ? "A+" : pct >= 80 ? "A" : pct >= 70 ? "B" : pct >= 60 ? "C" : pct >= 50 ? "D" : "E";
+      const sheets = studentsInGrade.map((stu) => {
+        const mine = marksMap[stu.id] || [];
+        const byTS = {}; mine.forEach((m) => { (byTS[m.term] = byTS[m.term] || {})[m.subject] = m.score; });
+        const subs = Array.from(new Set([...(SUBJECTS_BY_GRADE[rcGrade] || []), ...mine.map((m) => m.subject)]));
+        const overall = (t) => { const e = subs.map((s) => (byTS[t] || {})[s]).filter((v) => v != null); return e.length ? Math.round((e.reduce((a, b) => a + b, 0) / (e.length * MARK_MAX)) * 100) : null; };
+        const rows = subs.map((s) => { const a = (byTS["Sem 1"] || {})[s], b = (byTS["Sem 2"] || {})[s]; return `<tr><td>${s}</td><td class="c">${a != null ? a : "—"}</td><td class="c">${b != null ? b : "—"}</td></tr>`; }).join("");
+        const o1 = overall("Sem 1"), o2 = overall("Sem 2");
+        return `<div class="sheet"><div class="head"><img src="${logoUrl}"><div><h1>KTN Digital Online School</h1><div class="sub">Education for Free · Since 2019 — Report card</div></div></div>
+          <div class="info"><div><b>Student:</b> ${stu.name}</div><div><b>Roll:</b> ${stu.rollNumber || stu.code || "—"}</div><div><b>Class:</b> ${stu.grade || "—"}</div></div>
+          <table><thead><tr><th>Subject</th><th class="c">Sem 1 (/100)</th><th class="c">Sem 2 (/100)</th></tr></thead>
+          <tbody>${rows}<tr class="tot"><td>Overall</td><td class="c">${o1 != null ? o1 + "% " + gl(o1) : "—"}</td><td class="c">${o2 != null ? o2 + "% " + gl(o2) : "—"}</td></tr></tbody></table></div>`;
+      }).join('<div class="pb"></div>');
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${rcGrade} report cards</title>
+        <style>body{font-family:Arial,sans-serif;color:#16233A;margin:0}
+        .sheet{padding:34px;max-width:640px;margin:0 auto}
+        .pb{page-break-after:always}
+        .head{display:flex;align-items:center;gap:14px;border-bottom:3px solid #2F6BFF;padding-bottom:14px}
+        .head img{width:56px;height:56px;object-fit:contain} h1{font-size:20px;margin:0} .sub{color:#6B7A90;font-size:12px}
+        .info{display:flex;gap:24px;margin:18px 0;font-size:13px} table{width:100%;border-collapse:collapse}
+        th,td{border:1px solid #E4EAF5;padding:9px 12px;font-size:13px} th{background:#EAF1FF;text-align:left}
+        .c{text-align:center} .tot td{font-weight:bold;background:#FDF3E6}
+        @media print{.noprint{display:none}}</style></head><body>
+        <div class="noprint" style="text-align:center;padding:14px"><button onclick="window.print()" style="padding:10px 20px;font-size:14px;background:#2F6BFF;color:#fff;border:none;border-radius:8px;cursor:pointer">Save all as PDF / Print</button></div>
+        ${sheets}</body></html>`;
+      const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      const w = window.open(url, "_blank");
+      if (!w) { const a = document.createElement("a"); a.href = url; a.download = `${rcGrade}-report-cards.html`; document.body.appendChild(a); a.click(); a.remove(); }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } finally { setRcBusy(false); }
+  }
   async function invite(s) {
     setInviteMsg("");
     if (!hasFirebase) { setInviteMsg("Connect Firebase to send login invites."); return; }
@@ -273,6 +315,21 @@ function Students() {
           </div>
         </div>
       )}
+
+      <div className="card" style={{ padding: 14, marginBottom: 16, background: "#FDF3E6", border: "none" }}>
+        <div style={{ fontSize: 13, color: "#8A5A12", fontWeight: 700, marginBottom: 4 }}>Report cards (download all)</div>
+        <div style={{ fontSize: 12, color: "#8A5A12", marginBottom: 10, lineHeight: 1.45 }}>
+          Generate every student's marksheet for a whole class as one printable document — then Save as PDF or print.
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <select className="input" value={rcGrade} onChange={(e) => setRcGrade(e.target.value)} style={{ margin: 0, width: 130 }}>
+            {GRADES.map((g) => <option key={g}>{g}</option>)}
+          </select>
+          <button className="btnP" onClick={generateMarksheets} disabled={rcBusy} style={{ background: "#E8912A" }}>
+            <Icon name="send" size={14} color="#fff" sw={2.3} style={{ transform: "rotate(90deg)" }} /> {rcBusy ? "Generating…" : "Generate marksheets"}
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
         <div style={{ fontSize: 13, color: "var(--navy)", fontWeight: 700, marginBottom: 4 }}>Import existing students</div>

@@ -389,6 +389,7 @@ function ClassLinks({ classes }) {
           {r.cancelled && <input className="input" placeholder="Reason shown to students (e.g. Teacher unwell today)" value={r.reason} onChange={(e) => upd(i, { reason: e.target.value })} />}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button className="btnP" onClick={() => save(i)} style={{ justifyContent: "center" }}>Save</button>
+            {r.link && <button className="btnGhost" onClick={() => { try { navigator.clipboard.writeText(r.link); upd(i, { msg: "Link copied" }); setTimeout(() => upd(i, { msg: "" }), 1500); } catch (e) {} }} style={{ color: "var(--azure)", fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="copy" size={14} color="#2F6BFF" /> Copy link</button>}
             {r.msg && <span style={{ color: "#1E7A45", fontWeight: 700, fontSize: 13 }}>{r.msg}</span>}
           </div>
         </div>

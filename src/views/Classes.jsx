@@ -65,9 +65,12 @@ export default function Classes({ grade, onGrade }) {
                 );
                 const link = (cl && cl.link) || row.link;
                 return link ? (
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ marginTop: 12, width: "100%", justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}>
-                    <Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class
-                  </a>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}>
+                      <Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class
+                    </a>
+                    <button className="btnGhost" onClick={() => { try { navigator.clipboard.writeText(link); } catch (e) {} }} title="Copy link" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="copy" size={15} color="#2F6BFF" /></button>
+                  </div>
                 ) : null;
               })()}
             </div>
