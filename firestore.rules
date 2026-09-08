@@ -97,8 +97,25 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
     match /students/{id} {
-      allow read: if isAdmin() || (isTeacher() && resource.data.grade in myGrades());
-      allow write: if isAdmin();
+      allow read: if isAdmin()
+        || (isTeacher() && resource.data.grade in myGrades())
+        || (isStudent() && id == myStudentId());
+      // Admins have full write. A student may edit only their OWN record, and
+      // never change roll number, grade, status, freeze or account link. When
+      // the record is frozen, their name and date of birth are locked too.
+      allow update: if isAdmin() || (
+        isStudent() && id == myStudentId()
+        && request.resource.data.rollNumber == resource.data.rollNumber
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.grade == resource.data.grade
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.frozen == resource.data.frozen
+        && request.resource.data.uid == resource.data.uid
+        && (resource.data.frozen != true
+            || (request.resource.data.name == resource.data.name
+                && request.resource.data.dob == resource.data.dob))
+      );
+      allow create, delete: if isAdmin();
     }
     match /staff/{id} {
       allow read, write: if isAdmin();

@@ -2,7 +2,7 @@ import { useState } from "react";
 import Icon from "../data/icons.jsx";
 import { GRADES, CORE_SUBJECTS, SPECIAL_CLASSES, assignmentLabel } from "../data/school";
 
-// Manages a teacher's list of classes. Each is { subject, grade } — grade "" = special.
+// Manages a teacher's list of classes. Each is { subject, grade }, grade "" = special.
 export default function TeacherAssignments({ value, onChange }) {
   const list = value || [];
   const [kind, setKind] = useState("regular"); // "regular" | "special"
@@ -57,7 +57,7 @@ export default function TeacherAssignments({ value, onChange }) {
           <Icon name="plus" size={14} color="#2F6BFF" sw={2.5} /> Add this class
         </button>
       </div>
-      <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "8px 2px 0" }}>Most teachers take one or two classes. Add each one — a grade subject, or a special class like a language level, dance or music.</p>
+      <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "8px 2px 0" }}>Most teachers take one or two classes. Add each one, a grade subject, or a special class like a language level, dance or music.</p>
     </div>
   );
 }

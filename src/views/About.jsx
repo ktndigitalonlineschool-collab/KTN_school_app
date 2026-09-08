@@ -38,7 +38,7 @@ export default function About({ site }) {
           KTN Digital Online School (Korea Tamil Nanbargal) is Korea's first entirely free, Indian CBSE/NCERT-based online school. Founded in December 2019, we make quality education accessible to every child in the Indian community across South Korea.
         </p>
         <p className="para" style={{ margin: 0 }}>
-          We are powered by dedicated volunteer teachers — the pillars of KTN. Classes run online in the evenings, so children continue their day school while staying connected to their roots, their languages, and their culture.
+          We are powered by dedicated volunteer teachers, the pillars of KTN. Classes run online in the evenings, so children continue their day school while staying connected to their roots, their languages, and their culture.
         </p>
       </div>
 
@@ -68,14 +68,14 @@ export default function About({ site }) {
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
           <Icon name="globe" size={20} color="#1B327E" sw={2.2} />
           <p style={{ fontSize: 13, color: "var(--navy)", lineHeight: 1.5, margin: 0 }}>
-            With the warm support of the Embassy of India, Seoul, KTN has grown into a global family — welcoming learners from Korea, Australia, Malaysia, Singapore, Taiwan, India and beyond.
+            With the warm support of the Embassy of India, Seoul, KTN has grown into a global family, welcoming learners from Korea, Australia, Malaysia, Singapore, Taiwan, India and beyond.
           </p>
         </div>
       </div>
 
       {/* HISTORY */}
       <h3 className="h2" style={{ margin: "24px 0 4px" }}>Our journey</h3>
-      <p className="para" style={{ margin: "0 0 14px" }}>From a small idea in 2019 to a thriving online family — the moments that shaped KTN.</p>
+      <p className="para" style={{ margin: "0 0 14px" }}>From a small idea in 2019 to a thriving online family, the moments that shaped KTN.</p>
       <div style={{ position: "relative", paddingLeft: 30 }}>
         <div style={{ position: "absolute", left: 9, top: 6, bottom: 6, width: 2, background: "var(--line)" }} />
         {MS.map((m, i) => (

@@ -51,7 +51,7 @@ export default function Contact() {
             <Icon name="check" size={30} color="#1E9E5A" sw={2} />
           </div>
           <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>Message sent</div>
-          <p className="para" style={{ margin: "6px 0 0" }}>Thank you — we'll get back to you soon.</p>
+          <p className="para" style={{ margin: "6px 0 0" }}>Thank you, we'll get back to you soon.</p>
         </div>
       ) : (
         <div className="card" style={{ padding: 16 }}>

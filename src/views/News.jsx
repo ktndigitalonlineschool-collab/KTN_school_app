@@ -45,7 +45,7 @@ export default function News({ news, staff, onPublish, onDelete }) {
         {sorted.length === 0 && (
           <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
             <Mascot size={70} style={{ margin: "0 auto 6px" }} />
-            <div>No announcements yet — check back soon!</div>
+            <div>No announcements yet, check back soon!</div>
           </div>
         )}
         {sorted.map((n) => (

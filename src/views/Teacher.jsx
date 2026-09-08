@@ -147,7 +147,7 @@ function Marks({ grades, subject }) {
                 <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)" }}>{s.name}</div>
                 <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>{s.code}</div>
               </div>
-              <input inputMode="numeric" value={scores[s.id]} onChange={(e) => setScore(s.id, e.target.value)} placeholder="—"
+              <input inputMode="numeric" value={scores[s.id]} onChange={(e) => setScore(s.id, e.target.value)} placeholder="-"
                 style={{ width: 64, textAlign: "center", padding: "9px 8px", borderRadius: 10, border: "1.5px solid var(--line)", fontSize: 15, fontWeight: 700, color: "var(--ink)", background: "#FBFCFF" }} />
             </div>
           ))}
@@ -221,7 +221,7 @@ function TeacherToday({ user, regular, specials, onTake, onMarks }) {
       {specials.length > 0 && (
         <div className="card" style={{ padding: 14, marginTop: 4, background: "#EAF7EF", border: "none" }}>
           <div style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700 }}>Your special classes</div>
-          <div style={{ fontSize: 12.5, color: "#1E7A45", marginTop: 4 }}>{specials.map((a) => a.subject).join(", ")} — attendance &amp; marks tools for these are coming soon.</div>
+          <div style={{ fontSize: 12.5, color: "#1E7A45", marginTop: 4 }}>{specials.map((a) => a.subject).join(", ")}, attendance &amp; marks tools for these are coming soon.</div>
         </div>
       )}
       <div style={{ height: 8 }} />
@@ -295,8 +295,8 @@ function TeacherAssignments({ grades, subject }) {
           {grades.length > 1 && (
             <select className="input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>{grades.map((g) => <option key={g}>{g}</option>)}</select>
           )}
-          <input className="input" placeholder="Title (e.g. Worksheet 5 — Nouns)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
-          <textarea className="input" rows={2} placeholder="Instructions — what students should do / submit (required if there's no worksheet)" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} style={{ resize: "vertical" }} />
+          <input className="input" placeholder="Title (e.g. Worksheet 5, Nouns)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+          <textarea className="input" rows={2} placeholder="Instructions, what students should do / submit (required if there's no worksheet)" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} style={{ resize: "vertical" }} />
           {hasDrive ? (
             <div style={{ marginBottom: 10 }}>
               <label className="btnP" style={{ width: "100%", justifyContent: "center", background: form.fileName ? "#1E9E5A" : "var(--tintBlue)", color: form.fileName ? "#fff" : "var(--azure)", cursor: "pointer" }}>
@@ -312,7 +312,7 @@ function TeacherAssignments({ grades, subject }) {
           <input className="input" type="date" value={form.due} onChange={(e) => setForm((f) => ({ ...f, due: e.target.value }))} />
           {addErr && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>{addErr}</div>}
           <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}>Post assignment</button>
-          <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload the worksheet to Google Drive, then paste its share link here — this keeps storage free.</p>
+          <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload the worksheet to Google Drive, then paste its share link here, this keeps storage free.</p>
         </div>
       )}
 
@@ -350,7 +350,7 @@ function TeacherAssignments({ grades, subject }) {
                   return (
                     <div key={st.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 2px", gap: 6 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, flex: 1, minWidth: 0 }}>{st.name}</div>
-                      {s && (s.viewUrl || s.link) && <button className="btnGhost" onClick={() => setViewer({ name: st.name + " — work", viewUrl: s.viewUrl, downloadUrl: s.downloadUrl || s.link, openUrl: s.openUrl || s.link })} style={{ padding: 7 }} title="Open student's work"><Icon name="book" size={14} color="#2F6BFF" /></button>}
+                      {s && (s.viewUrl || s.link) && <button className="btnGhost" onClick={() => setViewer({ name: st.name + ", work", viewUrl: s.viewUrl, downloadUrl: s.downloadUrl || s.link, openUrl: s.openUrl || s.link })} style={{ padding: 7 }} title="Open student's work"><Icon name="book" size={14} color="#2F6BFF" /></button>}
                       {status === "reviewed"
                         ? <button className="pillBadge" onClick={() => setStatus(a, st, "submitted")} title="Tap to undo" style={{ background: "#E1F5EE", color: "#1E7A45", border: "none", cursor: "pointer" }}><Icon name="check" size={12} color="#1E7A45" sw={2.5} /> Done ✕</button>
                         : <button className="btnP" onClick={() => review(a, st)} style={{ padding: "7px 12px", fontSize: 12.5, background: status === "submitted" ? "#1E9E5A" : "#fff", color: status === "submitted" ? "#fff" : "var(--inkSoft)", border: status === "submitted" ? "none" : "1px solid var(--line)" }}>
@@ -390,7 +390,7 @@ function ClassLinks({ classes }) {
   if (rows.length === 0) return <div className="card" style={{ padding: 20, color: "var(--inkSoft)", fontSize: 14 }}>You have no grade classes to set links for.</div>;
   return (
     <>
-      <p className="para" style={{ margin: "0 0 14px" }}>Set the online class link students will use. If you can't hold a class, tick “class cancelled” and add a reason — students will see it instead of the link.</p>
+      <p className="para" style={{ margin: "0 0 14px" }}>Set the online class link students will use. If you can't hold a class, tick “class cancelled” and add a reason, students will see it instead of the link.</p>
       {rows.map((r, i) => (
         <div key={i} className="card" style={{ padding: 16, marginBottom: 12 }}>
           <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 10 }}>{r.subject} · {r.grade}</div>

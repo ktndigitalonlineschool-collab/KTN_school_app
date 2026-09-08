@@ -172,7 +172,7 @@ export default function Home({ news, site, onGo, onLightbox }) {
       <div className="card lift" onClick={() => onGo("teachers")} style={{ marginTop: 20, padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
         <div>
           <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15.5, fontWeight: 700, color: "var(--ink)" }}>Meet our teachers</div>
-          <div style={{ fontSize: 12.5, color: "var(--inkSoft)", marginTop: 2 }}>More than 30 dedicated volunteers — the heart of KTN</div>
+          <div style={{ fontSize: 12.5, color: "var(--inkSoft)", marginTop: 2 }}>More than 30 dedicated volunteers, the heart of KTN</div>
           <div style={{ display: "flex", marginLeft: 10, marginTop: 10 }}>
             {TEACHERS.slice(0, 6).map((t) => (
               <img key={t.key} src={t.photo} alt="" style={{ width: 46, height: 46, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", marginLeft: -10, boxShadow: "0 2px 6px rgba(22,35,58,.15)" }} />
@@ -249,7 +249,7 @@ export default function Home({ news, site, onGo, onLightbox }) {
 
       {/* CTA */}
       <div className="card" style={{ marginTop: 20, padding: 22, textAlign: "center", background: "linear-gradient(140deg, #F5921E, #F98029)", border: "none" }}>
-        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 19, fontWeight: 800, color: "var(--navy)", lineHeight: 1.25 }}>Admissions are open — and it's free</div>
+        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 19, fontWeight: 800, color: "var(--navy)", lineHeight: 1.25 }}>Admissions are open, and it's free</div>
         <p style={{ fontSize: 13.5, color: "#5A4410", margin: "8px 0 16px", lineHeight: 1.45 }}>Give your child their roots, their language, and a caring community. Request a place today.</p>
         <button onClick={() => onGo("apply")} style={{ background: "var(--navy)", color: "#fff", border: "none", borderRadius: 12, padding: "12px 20px", fontWeight: 800, fontSize: 14.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}>
           Request admission <Icon name="chev" size={17} color="#fff" sw={2.6} />

@@ -1,4 +1,4 @@
-// Authentication — works two ways:
+// Authentication, works two ways:
 //
 //  • Firebase ON  → real email + password logins (Firebase Authentication).
 //    Each account's role is stored in a "users/{uid}" document. Firestore

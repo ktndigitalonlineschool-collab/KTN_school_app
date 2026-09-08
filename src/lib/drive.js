@@ -1,6 +1,6 @@
 // Uploads files to the school's Google Drive via the Apps Script backend.
 // If the endpoint isn't configured, hasDrive is false and the app falls back
-// to paste-a-link. Files never touch Firebase — only the returned links do.
+// to paste-a-link. Files never touch Firebase, only the returned links do.
 
 const ENDPOINT = import.meta.env.VITE_DRIVE_ENDPOINT;
 const TOKEN = import.meta.env.VITE_DRIVE_TOKEN || "";

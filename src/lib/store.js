@@ -1,6 +1,6 @@
 // One storage layer, two backends.
 //
-// Every screen calls these functions — never Firebase or localStorage directly.
+// Every screen calls these functions, never Firebase or localStorage directly.
 // When Firebase keys are present we read/write Firestore (shared across every
 // device); otherwise we use this browser, seeded with demo data so the app is
 // fully explorable offline. Both return the same shapes.
@@ -93,6 +93,10 @@ export async function removeStudent(id) {
 export async function updateStudent(id, patch) {
   if (hasFirebase) { await setDoc(doc(db, "students", id), patch, { merge: true }); return; }
   const list = lsSeeded("ktn_students", SEED_STUDENTS); lsSet("ktn_students", list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+}
+export async function getStudent(id) {
+  if (hasFirebase) { const snap = await getDoc(doc(db, "students", id)); return snap.exists() ? { id: snap.id, ...snap.data() } : null; }
+  const list = lsSeeded("ktn_students", SEED_STUDENTS); return list.find((s) => s.id === id) || null;
 }
 export async function findStudentByCode(code) {
   const list = await listStudents();
@@ -442,7 +446,7 @@ export async function importRoster(roster) {
       grade: "", status: "enrolled", frozen: false, tempPassword: genTempPassword() }));
 
   if (hasFirebase) {
-    // Firestore batches are limited to 500 writes — chunk to be safe.
+    // Firestore batches are limited to 500 writes, chunk to be safe.
     for (let i = 0; i < toAdd.length; i += 400) {
       const batch = writeBatch(db);
       toAdd.slice(i, i + 400).forEach((rec) => batch.set(doc(collection(db, "students")), rec));

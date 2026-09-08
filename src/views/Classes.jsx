@@ -61,7 +61,7 @@ export default function Classes({ grade, onGrade }) {
               {(() => {
                 const cl = cls[row.subject];
                 if (classCancelledToday(cl)) return (
-                  <div style={{ marginTop: 12, background: "#FCEDEC", color: "#C0392B", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, fontWeight: 600 }}>🚫 No class — {cl.reason || "cancelled by the teacher"}</div>
+                  <div style={{ marginTop: 12, background: "#FCEDEC", color: "#C0392B", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, fontWeight: 600 }}>🚫 No class, {cl.reason || "cancelled by the teacher"}</div>
                 );
                 const link = (cl && cl.link) || row.link;
                 return link ? (

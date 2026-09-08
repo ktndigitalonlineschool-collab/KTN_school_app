@@ -114,7 +114,7 @@ function ApprovalCard({ pending, onDone }) {
             {pr.comments && <div style={{ fontStyle: "italic" }}>“{pr.comments}”</div>}
           </>
         ) : (
-          <div><b style={{ color: "var(--ink)" }}>Teaches:</b> {(pending.assignments || []).map(assignmentLabel).join(", ") || "—"}</div>
+          <div><b style={{ color: "var(--ink)" }}>Teaches:</b> {(pending.assignments || []).map(assignmentLabel).join(", ") || "-"}</div>
         )}
       </div>
 
@@ -229,12 +229,12 @@ function Students() {
         const byTS = {}; mine.forEach((m) => { (byTS[m.term] = byTS[m.term] || {})[m.subject] = m.score; });
         const subs = Array.from(new Set([...(SUBJECTS_BY_GRADE[rcGrade] || []), ...mine.map((m) => m.subject)]));
         const overall = (t) => { const e = subs.map((s) => (byTS[t] || {})[s]).filter((v) => v != null); return e.length ? Math.round((e.reduce((a, b) => a + b, 0) / (e.length * MARK_MAX)) * 100) : null; };
-        const rows = subs.map((s) => { const a = (byTS["Sem 1"] || {})[s], b = (byTS["Sem 2"] || {})[s]; return `<tr><td>${s}</td><td class="c">${a != null ? a : "—"}</td><td class="c">${b != null ? b : "—"}</td></tr>`; }).join("");
+        const rows = subs.map((s) => { const a = (byTS["Sem 1"] || {})[s], b = (byTS["Sem 2"] || {})[s]; return `<tr><td>${s}</td><td class="c">${a != null ? a : "-"}</td><td class="c">${b != null ? b : "-"}</td></tr>`; }).join("");
         const o1 = overall("Sem 1"), o2 = overall("Sem 2");
-        return `<div class="sheet"><div class="head"><img src="${logoUrl}"><div><h1>KTN Digital Online School</h1><div class="sub">Education for Free · Since 2019 — Report card</div></div></div>
-          <div class="info"><div><b>Student:</b> ${stu.name}</div><div><b>Roll:</b> ${normRoll(stu.rollNumber || stu.code) || "—"}</div><div><b>Class:</b> ${stu.grade || "—"}</div></div>
+        return `<div class="sheet"><div class="head"><img src="${logoUrl}"><div><h1>KTN Digital Online School</h1><div class="sub">Education for Free · Since 2019, Report card</div></div></div>
+          <div class="info"><div><b>Student:</b> ${stu.name}</div><div><b>Roll:</b> ${normRoll(stu.rollNumber || stu.code) || "-"}</div><div><b>Class:</b> ${stu.grade || "-"}</div></div>
           <table><thead><tr><th>Subject</th><th class="c">Sem 1 (/100)</th><th class="c">Sem 2 (/100)</th></tr></thead>
-          <tbody>${rows}<tr class="tot"><td>Overall</td><td class="c">${o1 != null ? o1 + "% " + gl(o1) : "—"}</td><td class="c">${o2 != null ? o2 + "% " + gl(o2) : "—"}</td></tr></tbody></table></div>`;
+          <tbody>${rows}<tr class="tot"><td>Overall</td><td class="c">${o1 != null ? o1 + "% " + gl(o1) : "-"}</td><td class="c">${o2 != null ? o2 + "% " + gl(o2) : "-"}</td></tr></tbody></table></div>`;
       }).join('<div class="pb"></div>');
       const html = `<!doctype html><html><head><meta charset="utf-8"><title>${rcGrade} report cards</title>
         <style>body{font-family:Arial,sans-serif;color:#16233A;margin:0}
@@ -257,7 +257,7 @@ function Students() {
   async function invite(s) {
     setInviteMsg("");
     if (!hasFirebase) { setInviteMsg("Connect Firebase to send login invites."); return; }
-    if (!s.email) { setInviteMsg(`${s.name} has no email on file — add one (via the spreadsheet) first.`); return; }
+    if (!s.email) { setInviteMsg(`${s.name} has no email on file, add one (via the spreadsheet) first.`); return; }
     try {
       const rand = Math.random().toString(36).slice(2, 12) + "Aa1!";
       await createStudentAccount({ email: s.email, password: rand, studentId: s.id, name: s.name, grade: s.grade || "", rollNumber: s.rollNumber || s.code || "" });
@@ -265,7 +265,7 @@ function Students() {
       try { await sendWelcomeEmail({ toEmail: s.email, toName: s.fatherName || s.name, rollNumber: s.rollNumber || s.code, grade: s.grade }); } catch { /* optional */ }
       setInviteMsg(`Set-password email sent to ${s.email} (roll ${s.rollNumber || s.code}).`);
     } catch (e) {
-      if (String(e.code || "").includes("email-already-in-use")) { try { await resetPassword(s.email); setInviteMsg(`${s.email} already had an account — set-password link re-sent.`); } catch { setInviteMsg(`Couldn't email ${s.email}.`); } }
+      if (String(e.code || "").includes("email-already-in-use")) { try { await resetPassword(s.email); setInviteMsg(`${s.email} already had an account, set-password link re-sent.`); } catch { setInviteMsg(`Couldn't email ${s.email}.`); } }
       else setInviteMsg(e.message || "Could not send invite.");
     }
   }
@@ -293,7 +293,7 @@ function Students() {
       complete: async (res) => {
         try {
           const { updated, created, skipped } = await store.bulkUpsertStudents(res.data);
-          setCsvMsg(`Done — ${updated} updated, ${created} added${skipped ? `, ${skipped} skipped (no roll number)` : ""}.`);
+          setCsvMsg(`Done, ${updated} updated, ${created} added${skipped ? `, ${skipped} skipped (no roll number)` : ""}.`);
           setList(await store.listStudents());
         } catch (err) { setCsvMsg(err.message || "Import failed."); }
         finally { setCsvBusy(false); if (csvRef.current) csvRef.current.value = ""; }
@@ -330,7 +330,7 @@ function Students() {
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "#FDF3E6", border: "none" }}>
         <div style={{ fontSize: 13, color: "#8A5A12", fontWeight: 700, marginBottom: 4 }}>Report cards (download all)</div>
         <div style={{ fontSize: 12, color: "#8A5A12", marginBottom: 10, lineHeight: 1.45 }}>
-          Generate every student's marksheet for a whole class as one printable document — then Save as PDF or print.
+          Generate every student's marksheet for a whole class as one printable document, then Save as PDF or print.
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <select className="input" value={rcGrade} onChange={(e) => setRcGrade(e.target.value)} style={{ margin: 0, width: 130 }}>
@@ -351,7 +351,7 @@ function Students() {
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
         <div style={{ fontSize: 13, color: "var(--navy)", fontWeight: 700, marginBottom: 4 }}>Import existing students</div>
         <div style={{ fontSize: 12, color: "var(--navy)", marginBottom: 10, lineHeight: 1.45 }}>
-          Adds your {ROSTER.length} current students with their roll numbers and a temporary password each (grade set later). Safe to click again — it skips anyone already added.
+          Adds your {ROSTER.length} current students with their roll numbers and a temporary password each (grade set later). Safe to click again, it skips anyone already added.
         </div>
         <button className="btnP" onClick={doImport} disabled={impBusy} style={{ justifyContent: "center" }}>
           <Icon name="plus" size={15} color="#fff" sw={2.5} /> {impBusy ? "Importing…" : `Import ${ROSTER.length} students`}
@@ -543,11 +543,11 @@ function Admissions() {
           note += ` A “set your password” email was sent to ${a.email}.`;
         } catch (e) {
           if (String(e.code || "").includes("email-already-in-use")) {
-            try { await resetPassword(a.email); note += ` That email already had an account — a set-password link was re-sent to ${a.email}.`; } catch { note += ` (Enrolled; couldn't email ${a.email}.)`; }
+            try { await resetPassword(a.email); note += ` That email already had an account, a set-password link was re-sent to ${a.email}.`; } catch { note += ` (Enrolled; couldn't email ${a.email}.)`; }
           } else { note += ` (Enrolled, but the login couldn't be created: ${e.message || e.code}.)`; }
         }
       } else if (hasFirebase && !a.email) {
-        note += ` No email on file — you can invite them later from the Students list.`;
+        note += ` No email on file, you can invite them later from the Students list.`;
       }
       await store.deleteApp(a.id);
       setMsg(note);
@@ -693,7 +693,7 @@ function Teachers() {
                 <button className="btnP" onClick={() => saveEdit(s)} style={{ flex: 1, justifyContent: "center" }}>Save changes</button>
                 <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 16px", fontWeight: 600 }}>Cancel</button>
               </div>
-              <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Email/password aren't changed here — the teacher can reset their own password from the sign-in screen.</p>
+              <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Email/password aren't changed here, the teacher can reset their own password from the sign-in screen.</p>
             </div>
           );
         }
@@ -803,7 +803,7 @@ function Timetable() {
               <select className="input" value={edit.day} onChange={(e) => setEdit((s) => ({ ...s, day: e.target.value }))} style={{ flex: 1 }}>{DAYS.map((d) => <option key={d}>{d}</option>)}</select>
               <input className="input" placeholder="Time" value={edit.time} onChange={(e) => setEdit((s) => ({ ...s, time: e.target.value }))} style={{ flex: 2 }} />
             </div>
-            <input className="input" placeholder="Join link (Zoom / Meet) — optional" value={edit.link} onChange={(e) => setEdit((s) => ({ ...s, link: e.target.value }))} />
+            <input className="input" placeholder="Join link (Zoom / Meet), optional" value={edit.link} onChange={(e) => setEdit((s) => ({ ...s, link: e.target.value }))} />
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btnP" onClick={() => saveEdit(r.id)} style={{ flex: 1, justifyContent: "center" }}>Save</button>
               <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 14px" }}>Cancel</button>
@@ -824,7 +824,7 @@ function Timetable() {
             <select className="input" value={form.day} onChange={(e) => setForm((f) => ({ ...f, day: e.target.value }))} style={{ flex: 1 }}>{DAYS.map((d) => <option key={d}>{d}</option>)}</select>
             <input className="input" placeholder="e.g. 6:00–7:00 PM" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} style={{ flex: 2 }} />
           </div>
-          <input className="input" placeholder="Join link (Zoom / Meet) — optional" value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} />
+          <input className="input" placeholder="Join link (Zoom / Meet), optional" value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} />
           <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add class</button>
         </div>
       )}
@@ -872,7 +872,7 @@ function Photos() {
         <input className="input" placeholder="Image link (https://…)" value={form.src} onChange={(e) => setForm((f) => ({ ...f, src: e.target.value }))} />
         <input className="input" placeholder="Caption" value={form.cap} onChange={(e) => setForm((f) => ({ ...f, cap: e.target.value }))} />
         <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add photo</button>
-        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Paste a link to a photo already online. Direct phone uploads need Firebase Storage — ask me to wire it up.</p>
+        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Paste a link to a photo already online. Direct phone uploads need Firebase Storage, ask me to wire it up.</p>
       </div>
       {list === null ? <p className="para">Loading…</p> : (list || []).length === 0 ? (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>No added photos yet. The built-in gallery still shows on the home page.</div>
@@ -1018,21 +1018,21 @@ function SiteContent() {
 
   return (
     <>
-      <Section title="Home — rotating taglines (one per line)">
+      <Section title="Home, rotating taglines (one per line)">
         <textarea className="input" rows={4} value={taglines} onChange={(e) => setTaglines(e.target.value)} style={{ resize: "vertical" }} />
       </Section>
-      <Section title="Home — “What we teach” chips (one per line)">
+      <Section title="Home, “What we teach” chips (one per line)">
         <textarea className="input" rows={4} value={teach} onChange={(e) => setTeach(e.target.value)} style={{ resize: "vertical" }} />
       </Section>
 
-      <Section title="Home — “In the news” card">
+      <Section title="Home, “In the news” card">
         <label style={lbl}>Outlet</label><input className="input" value={press.outlet} onChange={(e) => setPress({ ...press, outlet: e.target.value })} />
         <label style={lbl}>Title</label><input className="input" value={press.title} onChange={(e) => setPress({ ...press, title: e.target.value })} />
         <label style={lbl}>Link</label><input className="input" value={press.url} onChange={(e) => setPress({ ...press, url: e.target.value })} />
         <label style={lbl}>Summary</label><textarea className="input" rows={3} value={press.blurb} onChange={(e) => setPress({ ...press, blurb: e.target.value })} style={{ resize: "vertical" }} />
       </Section>
 
-      <Section title="Home — headline statistics (update each year)">
+      <Section title="Home, headline statistics (update each year)">
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}><label style={lbl}>Years</label><input className="input" value={stats.years} onChange={(e) => setStats((s) => ({ ...s, years: e.target.value }))} /></div>
           <div style={{ flex: 1 }}><label style={lbl}>Students / year</label><input className="input" value={stats.students} onChange={(e) => setStats((s) => ({ ...s, students: e.target.value }))} /></div>

@@ -47,7 +47,7 @@ export default function Apply({ onSubmit }) {
         <Mascot size={96} className="mascot-float" style={{ margin: "0 auto 12px" }} />
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 21, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>Application received</h2>
         <p className="para" style={{ maxWidth: 300, margin: "0 auto 22px" }}>
-          Thank you! Our volunteer team will review {lastName}'s application. Once accepted, you'll get an email with a link to set your password and sign in. Remember — KTN is completely free.
+          Thank you! Our volunteer team will review {lastName}'s application. Once accepted, you'll get an email with a link to set your password and sign in. Remember, KTN is completely free.
         </p>
         <button className="btnP" onClick={() => setDone(false)} style={{ margin: "0 auto" }}>Submit another application</button>
       </div>
@@ -56,7 +56,7 @@ export default function Apply({ onSubmit }) {
 
   return (
     <>
-      <SectionTitle eyebrow="Admissions" title="Apply — it's free" />
+      <SectionTitle eyebrow="Admissions" title="Apply, it's free" />
       <p className="para" style={{ margin: "-6px 0 12px" }}>
         Fill in your child's details to apply. Fields marked * are required. After the school accepts the application, you'll receive an email to set your password and access the portal.
       </p>

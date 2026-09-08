@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-// Nanban — KTN's friendly graduate-owl mascot. Lightweight, recolourable SVG.
+// Nanban, KTN's friendly graduate-owl mascot. Lightweight, recolourable SVG.
 // Use small in corners (peek), or larger for welcome / empty / success moments.
 export default function Mascot({ size = 90, className = "", style }) {
   const id = useId();

@@ -20,7 +20,7 @@ export default function FileViewer({ file, onClose }) {
         </div>
         {file.viewUrl
           ? <iframe title="viewer" src={file.viewUrl} style={{ flex: 1, border: 0, width: "100%" }} />
-          : <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--inkSoft)", fontSize: 14, padding: 20, textAlign: "center" }}>Preview isn't available for this link — use Open below.</div>}
+          : <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--inkSoft)", fontSize: 14, padding: 20, textAlign: "center" }}>Preview isn't available for this link, use Open below.</div>}
         <div style={{ display: "flex", gap: 8, padding: 12, borderTop: "1px solid var(--line)" }}>
           {file.downloadUrl && <a href={file.downloadUrl} className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none" }}><Icon name="send" size={15} color="#fff" sw={2.4} style={{ transform: "rotate(90deg)" }} /> Download</a>}
           {(file.openUrl || file.viewUrl) && <a href={file.openUrl || file.viewUrl} target="_blank" rel="noopener noreferrer" className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="globe" size={15} color="#2F6BFF" sw={2.4} /> Open</a>}

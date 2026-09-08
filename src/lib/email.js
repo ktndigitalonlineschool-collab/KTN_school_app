@@ -1,4 +1,4 @@
-// Optional custom welcome email (EmailJS) — free, no backend.
+// Optional custom welcome email (EmailJS), free, no backend.
 //
 // If the three VITE_EMAILJS_* keys are set in .env, we send a branded welcome
 // email that includes the student's roll number. This is SEPARATE from the

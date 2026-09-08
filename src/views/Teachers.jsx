@@ -8,7 +8,13 @@ export default function Teachers() {
   useEffect(() => { store.listDirectory().then(setDir).catch(() => setDir([])); }, []);
 
   // Use the admin-managed directory if it has entries, else the built-in 28.
-  const list = dir && dir.length ? dir : TEACHERS;
+  const base = dir && dir.length ? dir : TEACHERS;
+  // Most experienced first: earliest joining year leads (2019 teachers like Saraswathi).
+  const list = [...base].sort((a, b) => {
+    const ya = parseInt(a.joined, 10) || 9999;
+    const yb = parseInt(b.joined, 10) || 9999;
+    return ya - yb;
+  });
 
   return (
     <>

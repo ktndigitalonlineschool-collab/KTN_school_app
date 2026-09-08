@@ -109,7 +109,7 @@ function DemoLogin({ onBack, onLoggedIn }) {
               <Icon name="chev" size={20} color="#52617A" />
             </div>
           ))}
-          <p className="para" style={{ fontSize: 12, textAlign: "center", marginTop: 14 }}>Demo mode — connect Firebase for real email &amp; password logins.</p>
+          <p className="para" style={{ fontSize: 12, textAlign: "center", marginTop: 14 }}>Demo mode, connect Firebase for real email &amp; password logins.</p>
         </>
       )}
       {role && (

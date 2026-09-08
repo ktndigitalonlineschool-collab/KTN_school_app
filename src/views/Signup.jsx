@@ -52,7 +52,7 @@ export default function Signup({ onBack }) {
         ) : (
           <div className="card" style={{ padding: 16 }}>
             <p className="para" style={{ margin: "0 0 12px", fontSize: 13 }}>
-              This form is for <b>teachers</b>. Parents don't sign up here — you'll receive a “set your password” email once your child's admission is accepted.
+              This form is for <b>teachers</b>. Parents don't sign up here, you'll receive a “set your password” email once your child's admission is accepted.
             </p>
             <Label>Full name *</Label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />

@@ -73,7 +73,7 @@ function Splash() {
 
 function StatusScreen({ role, email, uid, onLogout }) {
   const map = {
-    pending: { ic: "clock", col: "#B76A0E", tint: "#FDEEDA", title: "Waiting for approval", body: "Your registration has been received. An admin will approve your account soon — then you can sign in and see your portal." },
+    pending: { ic: "clock", col: "#B76A0E", tint: "#FDEEDA", title: "Waiting for approval", body: "Your registration has been received. An admin will approve your account soon, then you can sign in and see your portal." },
     rejected: { ic: "x", col: "#FF6B5E", tint: "#FCEDEC", title: "Account not approved", body: "This account wasn't approved. Please contact the school if you think this is a mistake." },
     none: { ic: "info", col: "#52617A", tint: "#EEF1F7", title: "Account not set up", body: "This account isn't linked to a role yet. To make it an admin, create a document in the Firestore “users” collection whose ID is exactly the code below, with a field role = admin." },
   };
@@ -90,7 +90,7 @@ function StatusScreen({ role, email, uid, onLogout }) {
           {email && <div style={{ fontSize: 12, color: "var(--inkSoft)", marginBottom: role === "none" ? 8 : 16 }}>Signed in as {email}</div>}
           {role === "none" && uid && (
             <div style={{ background: "var(--bg)", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-              <div style={{ fontSize: 10.5, color: "var(--inkSoft)", fontWeight: 700, marginBottom: 6, letterSpacing: ".4px" }}>YOUR ACCOUNT ID — use as the users document ID</div>
+              <div style={{ fontSize: 10.5, color: "var(--inkSoft)", fontWeight: 700, marginBottom: 6, letterSpacing: ".4px" }}>YOUR ACCOUNT ID, use as the users document ID</div>
               <div style={{ fontFamily: "monospace", fontSize: 12.5, wordBreak: "break-all", color: "var(--ink)", marginBottom: 8 }}>{uid}</div>
               <button className="btnP" onClick={() => { try { navigator.clipboard.writeText(uid); } catch (e) { /* ignore */ } }} style={{ margin: "0 auto", padding: "8px 14px", fontSize: 12.5 }}>Copy ID</button>
             </div>

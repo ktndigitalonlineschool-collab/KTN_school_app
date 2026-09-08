@@ -3,7 +3,7 @@
 // If you paste your Firebase keys into a ".env" file, the app connects to
 // Firestore (cloud database) and Firebase Authentication (real logins). If you
 // leave the keys blank, `hasFirebase` is false and the app quietly uses
-// on-device storage with simple demo codes — so it always runs.
+// on-device storage with simple demo codes, so it always runs.
 
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
