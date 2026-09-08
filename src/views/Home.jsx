@@ -66,6 +66,27 @@ export default function Home({ news, site, onGo, onLightbox }) {
   const [extraGallery, setExtraGallery] = useState([]);
   useEffect(() => { store.listGalleryExtra().then(setExtraGallery).catch(() => {}); }, []);
   const gallery = [...GALLERY, ...extraGallery];
+  const galRef = useRef(null);
+  const galPos = useRef(0);
+  const galPaused = useRef(false);
+  useEffect(() => {
+    const el = galRef.current;
+    if (!el) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    galPos.current = el.scrollLeft;
+    let raf;
+    const step = () => {
+      if (!galPaused.current && el.scrollWidth > el.clientWidth) {
+        const half = el.scrollWidth / 2;
+        galPos.current += 0.4;
+        if (galPos.current >= half) galPos.current -= half;
+        el.scrollLeft = galPos.current;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [gallery.length]);
 
   const pinned = news.find((n) => n.pinned) || news[0];
   const v = VOICES[voice];
@@ -131,8 +152,12 @@ export default function Home({ news, site, onGo, onLightbox }) {
       {/* GALLERY */}
       <div style={{ marginTop: 22 }}>
         <h2 className="h2" style={{ marginBottom: 10 }}>Life at KTN</h2>
-        <div className="gstrip">
-          {gallery.map((p, i) => (
+        <div className="gstrip" ref={galRef}
+          onMouseEnter={() => { galPaused.current = true; }}
+          onMouseLeave={() => { galPaused.current = false; galPos.current = galRef.current ? galRef.current.scrollLeft : 0; }}
+          onTouchStart={() => { galPaused.current = true; }}
+          onTouchEnd={() => { setTimeout(() => { galPaused.current = false; galPos.current = galRef.current ? galRef.current.scrollLeft : 0; }, 2500); }}>
+          {[...gallery, ...gallery].map((p, i) => (
             <div key={i} className="gphoto" onClick={() => onLightbox(p)} style={p.wide ? { width: 256 } : undefined}>
               <img src={p.src} alt={p.cap} />
               <div className="cap">{p.cap}</div>
