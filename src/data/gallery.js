@@ -3,7 +3,7 @@
 import teachersAnnual from "../assets/gallery/teachers-annualday.jpg";
 
 const mods = import.meta.glob("../assets/gallery/g*.jpg", { eager: true, import: "default" });
-const CAPS = ["Cultural performance", "Annual field trip", "Live online learning", "Anniversary celebration", "Honouring our students", "Field trip group"];
+const CAPS = ["Cultural performance", "Field trip to the farm", "In the classroom", "Anniversary celebration", "Gandhi Jayanti", "Campus visit"];
 const entries = Object.keys(mods).sort((a, b) => {
   const na = parseInt(a.match(/g(\d+)\.jpg/)[1], 10);
   const nb = parseInt(b.match(/g(\d+)\.jpg/)[1], 10);
