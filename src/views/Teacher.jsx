@@ -3,7 +3,7 @@ import Icon from "../data/icons.jsx";
 import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
-import { fmtDate, classCancelledToday } from "../lib/util";
+import { fmtDate, classCancelledToday, driveFolderPath } from "../lib/util";
 import { hasDrive, uploadToDrive } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
 import * as store from "../lib/store";
@@ -243,7 +243,7 @@ function TeacherAssignments({ grades, subject }) {
   async function onFile(e) {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     setUp(true);
-    try { const r = await uploadToDrive(form.grade, f); setForm((s) => ({ ...s, link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name })); }
+    try { const r = await uploadToDrive(driveFolderPath(form.grade, subject, "Assignments", form.due), f); setForm((s) => ({ ...s, link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name })); }
     catch (err) { alert(err.message || "Upload failed"); }
     finally { setUp(false); }
   }

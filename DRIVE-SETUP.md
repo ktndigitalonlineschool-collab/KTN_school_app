@@ -37,8 +37,11 @@ Drive, and open in an in-app viewer with a Download option.
 ## Notes
 - Files are set to **"anyone with the link — Viewer"** so students can open them.
   They live in the KTN Drive, owned by the school.
-- Worksheets go to `KTN Worksheets/<Grade>`; student work goes to
-  `KTN Worksheets/Submissions/<Grade>`.
+- Files are organised so nothing clashes across years:
+  `KTN Worksheets / <academic year> / <Grade> / <Subject> / Assignments / <date>`
+  and student work under `.../ <Subject> / Student Work / <date>`.
+  Example: `KTN Worksheets/2026-27/Grade 3/English/Assignments/2026-06-15/`.
+  The date is the assignment's due date (or the upload date if none).
 - Free Google account = 15 GB, enough for many years of small worksheets.
 - If uploads fail, re-check: the TOKEN matches in both places, the deployment is
   "Anyone" access, and you authorised the script. If you edit the script later,

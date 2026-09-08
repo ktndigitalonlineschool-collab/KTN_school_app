@@ -5,7 +5,7 @@ import FileViewer from "../components/FileViewer.jsx";
 import { hasDrive, uploadToDrive } from "../lib/drive";
 import { TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX, SUBJECTS_BY_GRADE } from "../data/school";
 import logo from "../assets/logo.png";
-import { fmtDate, classCancelledToday, normRoll } from "../lib/util";
+import { fmtDate, classCancelledToday, normRoll, driveFolderPath } from "../lib/util";
 import * as store from "../lib/store";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -56,7 +56,7 @@ export default function Student({ user }) {
     if (!file) return;
     setUpId(a.id);
     try {
-      const r = await uploadToDrive(`Submissions/${user.grade}`, file);
+      const r = await uploadToDrive(driveFolderPath(user.grade, a.subject, "Student Work", a.due), file);
       const rec = await store.setSubmission(a.id, user.id, user.grade, { status: "submitted", submittedAt: new Date().toISOString(), link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name });
       setSubs((s) => ({ ...s, [a.id]: rec }));
     } catch (e) { alert(e.message || "Upload failed"); }
