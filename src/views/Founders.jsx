@@ -1,6 +1,6 @@
 import Icon from "../data/icons.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
-import { FOUNDERS, LEADER_MESSAGE } from "../data/content";
+import { FOUNDERS, LEADER_MESSAGE, FOUNDERS_STORY } from "../data/content";
 
 function initials(name) {
   return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -13,9 +13,13 @@ export default function Founders({ site }) {
   return (
     <>
       <SectionTitle eyebrow="Our founders" title="The people behind KTN" />
-      <p className="para" style={{ margin: "-6px 0 16px" }}>
-        KTN was founded in November 2019 by Syed Shanu and three others — a free, volunteer-run online school so children moving between countries never have to make the transition alone.
-      </p>
+      <div style={{ textAlign: "center", margin: "-2px 0 14px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: "var(--amber)", fontSize: 14 }}>
+        Education for Free! Education for All!
+      </div>
+      <div className="card" style={{ padding: 16, marginBottom: 16, background: "var(--tintAmber)", border: "none" }}>
+        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 15, color: "#8A5A12", marginBottom: 6 }}>History begins at a dream</div>
+        <p style={{ fontSize: 13.5, color: "#6B4409", lineHeight: 1.6, margin: 0 }}>{FOUNDERS_STORY}</p>
+      </div>
 
       {/* Featured message */}
       <div className="card" style={{ padding: 18, marginBottom: 18, background: "linear-gradient(135deg, var(--navy), var(--azure))", border: "none", position: "relative", overflow: "hidden" }}>

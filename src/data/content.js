@@ -261,15 +261,16 @@ export const VOICES = [
 ];
 
 export const MILESTONES = [
-  { year:"Oct 2019", color:"#2F6BFF", title:"The idea is born", body:"A small community plan takes shape with one motto: \u201cEducation for Free. Education for All.\u201d \u2014 a free Indian CBSE online school for children in Korea, powered by volunteers." },
-  { year:"30 Nov 2019", color:"#1B327E", title:"Opening ceremony at the Embassy", body:"KTN is inaugurated at the Embassy of India, Seoul, honoured by the presence of the Deputy Chief of Mission." },
-  { year:"Dec 2019", color:"#2F6BFF", title:"Classes begin", body:"The school formally starts \u2014 before online learning became common \u2014 proving young children can thrive in a well-run online classroom." },
-  { year:"Dec 2020", color:"#F5921E", title:"1st Anniversary", body:"Our first anniversary, kept simple and safe during COVID-19, honouring teachers and students one by one." },
-  { year:"Dec 2021", color:"#F5921E", title:"2nd Anniversary", body:"Celebrated online with Ambassador Sripriya Ranganathan as Chief Guest." },
-  { year:"10 Dec 2022", color:"#FF6B5E", title:"3rd Anniversary \u2014 back on stage", body:"Our first in-person celebration after COVID, with a full day of cultural performances and graduation certificates." },
-  { year:"3 Dec 2023", color:"#FF6B5E", title:"4th Anniversary", body:"A grand day of student performances from morning to evening, with teachers and parents celebrating together." },
-  { year:"30 Nov 2024", color:"#1B327E", title:"5th Anniversary \u2014 Long Service Award", body:"We introduced the Long Service Award, honouring teachers who have served KTN for five continuous years." },
-  { year:"8 Nov 2025", color:"#2F6BFF", title:"First in-person annual exams", body:"For the first time, students across Korea sat formal in-person CBSE annual exams in zones including Seoul, Daejeon, Daegu and Ulsan, with online for other regions." },
+  { year:"Oct 2019", color:"#2F6BFF", title:"The idea is born", body:"A community plan takes shape with one motto \u2014 \u201cEducation for Free. Education for All.\u201d \u2014 a free Indian CBSE online school for children in Korea, powered by volunteers." },
+  { year:"Dec 2019", color:"#1B327E", title:"KTN is founded", body:"Korea\u2019s first entirely free, NCERT\u2013CBSE Indian online school begins \u2014 before online learning became common \u2014 proving young children can thrive in a well-run online classroom." },
+  { year:"Dec 2021", color:"#F5921E", title:"2nd Anniversary", body:"Marked online during COVID-19, yet the community\u2019s spirit shone brightly." },
+  { year:"10 Dec 2022", color:"#FF6B5E", title:"3rd Anniversary \u2014 back on stage", body:"Our first grand in-person celebration, honoured by Mr. Surinder Bhagat, Deputy Chief of Mission, Embassy of India, Seoul." },
+  { year:"3 Dec 2023", color:"#FF6B5E", title:"4th Anniversary", body:"A full day of student performances, with Chief Guest Mr. Nishikant Singh, Deputy Chief of Mission, Embassy of India, Seoul." },
+  { year:"Dec 2024", color:"#1E9E5A", title:"Giving back \u2014 charity work", body:"Beyond teaching, our team visited children\u2019s centres in South Korea, spending time with the little ones \u2014 part of KTN\u2019s ongoing service in both Korea and India." },
+  { year:"30 Nov 2024", color:"#1B327E", title:"5th Anniversary \u2014 Long Service Award", body:"Chief Guest Mr. Suresh Kumar S, Second Secretary (Consular & Community Affairs), Embassy of India. We introduced the Long Service Award for teachers of five continuous years." },
+  { year:"8 Nov 2025", color:"#2F6BFF", title:"First in-person annual exams", body:"For the first time, Grades 1\u20137 sat formal in-person CBSE annual exams across four zones in Korea \u2014 for many children, their first experience writing exams in a hall." },
+  { year:"29 Nov 2025", color:"#F5921E", title:"6th Anniversary & book launch", body:"A special year: we celebrated six years and launched our five-year school journey book, capturing the story so far." },
+  { year:"2026", color:"#2F6BFF", title:"Recognised in the media", body:"KTN\u2019s journey of free, quality education for Indian children in Korea was proudly featured by leading media \u2014 a milestone for the whole community." },
 ];
 
 export const SEED_NEWS = [
@@ -280,17 +281,24 @@ export const SEED_NEWS = [
 
 // Founders & leadership (shown on the Founders page). Add photos/messages later.
 import { FOUNDER_PHOTOS } from "./founderPhotos";
+// An improvised opening story for the Founders page.
+export const FOUNDERS_STORY =
+  "History begins at a dream \u2014 and that is exactly where KTN Digital Online School began. Founder Syed Shanu saw the quiet struggle of Indian parents raising children far from home in South Korea, watching their little ones drift from the language, culture and curriculum of their roots. He dreamed of something simple yet bold: an entirely free, Indian CBSE online school, built by the community, for the community. He carried that dream to the Indian families of Korea and called for volunteers \u2014 teachers who would give their evenings so that no child would be left behind. The response was overwhelming. One person\u2019s dream became the shared dream of dozens of teachers and hundreds of parents. Since 2019, that dream has grown into a thriving school \u2014 living proof that when a community comes together, quality education can truly be free, for every child.";
+
 export const FOUNDERS = [
   {
     name: "Syed Shanu",
-    role: "Founder & Coordinator",
+    role: "Founder",
     photo: FOUNDER_PHOTOS.shanu,
     message:
-      "Glad to be part of this wonderful community. When we first started KTN Digital Online School we faced many challenges and questions, but we slowly overcame them all \u2014 and today we run successfully in Korea, free for every child, since 2019.",
+      "Glad to be part of this wonderful community. When we first started KTN we faced many challenges and questions, but we slowly overcame them all \u2014 and today we run successfully in Korea, free for every child, since 2019. The main reason behind our success is our dedicated teachers, the pillars of our school. Huge thanks, too, to all our students and parents for always being supportive.",
   },
   { name: "Senthilraja", role: "Co-founder", photo: FOUNDER_PHOTOS.senthil,
-    message: "Since its founding in 2019, KTN has grown from a vision into a trusted platform for quality education in Korea \u2014 made possible by our dedicated teachers and the trust of our students and parents." },
-  { name: "Lakshmipathy Rao", role: "Co-founder", photo: FOUNDER_PHOTOS.rao },
+    message: "Since its founding in 2019, KTN has grown from a vision into a trusted platform for quality education in Korea \u2014 made possible by our dedicated teachers and the continued trust of our students and their families. We look forward to an even brighter future together." },
+  { name: "Lakshmipathy Rao", role: "Co-founder", photo: FOUNDER_PHOTOS.rao,
+    message: "Providing high-quality education is a priority for parents in Korea, and we are proud our school offers an Indian-based curriculum to families here. At our launch in early 2019 we had doubts about online school for young learners \u2014 but the pandemic made virtual learning a global standard. We are deeply grateful to our incredible teachers, and to our parents and students for their trust. We are committed to serving this community for many years to come." },
+  { name: "Bhaskar Naidu", role: "Co-ordinator", message:
+    "Since 2019 I have been proud to be part of KTN, both as a parent and a volunteer. This school means everything to us \u2014 my wife teaches here and our daughter is a student. It is a privilege to witness the life-changing impact of completely free education, and I am endlessly grateful to our volunteer teachers. KTN is far more than a platform; it is a compassionate, living family building a brighter future through accessible learning." },
 ];
 
 // A featured message you can edit (e.g. a Director's / Coordinator's note).

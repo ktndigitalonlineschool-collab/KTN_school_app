@@ -174,7 +174,14 @@ const META = [
   "role": "Drawing",
   "joined": "2020",
   "key": "t27"
- }
+ },
+ { "name": "Nivedha Kulothungan", "role": "Grade 3 \u00b7 Maths", "joined": "2026" },
+ { "name": "Khilkhil Ghosal", "role": "Grade 6 & 7 \u00b7 Maths", "joined": "2026" },
+ { "name": "Yarram Tejaswini", "role": "Korean", "joined": "2026" },
+ { "name": "Anbumalar", "role": "Grade 1 \u00b7 Tamil", "joined": "2026" },
+ { "name": "Sravanthi Reddy", "role": "Telugu", "joined": "2026" },
+ { "name": "Anshul Manchanda", "role": "Computer", "joined": "2026" },
+ { "name": "Latha Ravichandran", "role": "Tamil", "joined": "2026" }
 ];
 
 export const TEACHERS = META.map((t) => ({ ...t, photo: photos[t.key] }));

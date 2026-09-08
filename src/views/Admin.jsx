@@ -926,8 +926,8 @@ function TeacherProfiles() {
     <>
       {(list !== null && list.length === 0) && (
         <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
-          <div style={{ fontSize: 13, color: "var(--navy)", fontWeight: 600, marginBottom: 10 }}>The public Teachers page currently shows the 28 built-in profiles. Import them to edit, or just add new teachers below.</div>
-          <button className="btnP" onClick={importBuiltin} disabled={busy} style={{ justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> {busy ? "Importing…" : "Import the 28 built-in profiles"}</button>
+          <div style={{ fontSize: 13, color: "var(--navy)", fontWeight: 600, marginBottom: 10 }}>The public Teachers page currently shows the built-in profiles. Import them to edit, or just add new teachers below.</div>
+          <button className="btnP" onClick={importBuiltin} disabled={busy} style={{ justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> {busy ? "Importing…" : "Import built-in profiles"}</button>
         </div>
       )}
 

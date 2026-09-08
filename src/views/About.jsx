@@ -27,6 +27,12 @@ export default function About({ site }) {
         <h2 className="title" style={{ textAlign: "center" }}>A school by the community,<br />for the community</h2>
       </div>
 
+      <div style={{ textAlign: "center", margin: "0 0 14px" }}>
+        <span style={{ display: "inline-block", background: "linear-gradient(135deg, var(--navy), var(--azure))", color: "#fff", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 14.5, padding: "8px 18px", borderRadius: 999 }}>
+          Education for Free! Education for All!
+        </span>
+      </div>
+
       <div className="card" style={{ padding: 18 }}>
         <p className="para" style={{ margin: "0 0 12px" }}>
           KTN Digital Online School (Korea Tamil Nanbargal) is Korea's first entirely free, Indian CBSE/NCERT-based online school. Founded in December 2019, we make quality education accessible to every child in the Indian community across South Korea.
