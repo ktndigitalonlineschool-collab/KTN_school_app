@@ -46,9 +46,15 @@ export default function Apply({ onSubmit }) {
       <div style={{ paddingTop: 30, textAlign: "center" }}>
         <Mascot size={96} className="mascot-float" style={{ margin: "0 auto 12px" }} />
         <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 21, fontWeight: 800, color: "var(--ink)", margin: "0 0 8px" }}>Application received</h2>
-        <p className="para" style={{ maxWidth: 300, margin: "0 auto 22px" }}>
+        <p className="para" style={{ maxWidth: 320, margin: "0 auto 14px" }}>
           Thank you! Our volunteer team will review {lastName}'s application. Once accepted, you'll get an email with a link to set your password and sign in. Remember, KTN is completely free.
         </p>
+        <div className="card" style={{ maxWidth: 340, margin: "0 auto 22px", padding: 14, background: "var(--tintAmber)", border: "none", textAlign: "left" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#8A5A12", marginBottom: 4 }}>📩 Please check your Spam folder</div>
+          <div style={{ fontSize: 12.5, color: "#6B4409", lineHeight: 1.5 }}>
+            Our emails (confirmation, welcome, and the "set your password" link) may land in <b>Spam / Junk</b> at first. If you find one there, please open it and tap <b>"Not spam"</b> so future emails reach your inbox.
+          </div>
+        </div>
         <button className="btnP" onClick={() => setDone(false)} style={{ margin: "0 auto" }}>Submit another application</button>
       </div>
     );

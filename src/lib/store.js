@@ -553,6 +553,13 @@ export async function bulkUpsertStudents(rows) {
     });
     lsSet("ktn_students", list);
   }
+
+  // Seed the roll counter to (highest roll + 1) so accepted students continue the sequence.
+  const allRolls = [...existing.map((s) => normRoll(s.rollNumber || s.code)), ...rows.map((r) => normRoll(r.rollNumber))]
+    .map((r) => parseInt(r, 10) || 0);
+  const maxRoll = Math.max(0, ...allRolls);
+  if (maxRoll > 0) await seedRollCounter(maxRoll + 1);
+
   return { updated, created, skipped };
 }
 

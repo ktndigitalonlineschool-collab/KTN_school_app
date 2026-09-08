@@ -207,14 +207,24 @@ function Students() {
   const [rcBusy, setRcBusy] = useState(false);
   const [cleanBusy, setCleanBusy] = useState(false);
   const [cleanMsg, setCleanMsg] = useState("");
+  const [rollStart, setRollStart] = useState("");
   async function cleanRolls() {
     setCleanBusy(true); setCleanMsg("");
     try {
       const n = await store.cleanRollNumbers();
-      setList(await store.listStudents());
-      setCleanMsg(n === 0 ? "All roll numbers already clean." : `Fixed ${n} roll number${n === 1 ? "" : "s"}.`);
+      const all = await store.listStudents();
+      setList(all);
+      const maxRoll = Math.max(0, ...all.map((s) => parseInt(normRoll(s.rollNumber || s.code), 10) || 0));
+      if (maxRoll > 0) await store.seedRollCounter(maxRoll + 1);
+      setCleanMsg((n === 0 ? "All roll numbers already clean." : `Fixed ${n} roll number${n === 1 ? "" : "s"}.`) + (maxRoll > 0 ? ` Next roll: ${maxRoll + 1}.` : ""));
     } catch (e) { setCleanMsg(e.message || "Could not clean."); }
     finally { setCleanBusy(false); }
+  }
+  async function setStartingRoll() {
+    const n = parseInt(rollStart, 10);
+    if (!n || n < 1) { setCleanMsg("Enter a valid number, e.g. 19362."); return; }
+    await store.seedRollCounter(n);
+    setCleanMsg(`Next student will be enrolled as roll ${n}.`); setRollStart("");
   }
   async function generateMarksheets() {
     setRcBusy(true);
@@ -344,8 +354,16 @@ function Students() {
           <button className="btnGhost" onClick={cleanRolls} disabled={cleanBusy} style={{ color: "#8A5A12", fontWeight: 700, fontSize: 13 }}>
             {cleanBusy ? "Cleaning…" : "Clean roll numbers (fix “19283.0” → “19283”)"}
           </button>
-          {cleanMsg && <span style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700, marginLeft: 8 }}>{cleanMsg}</span>}
         </div>
+        <div style={{ borderTop: "1px solid #F0DFC4", marginTop: 12, paddingTop: 12 }}>
+          <div style={{ fontSize: 12.5, color: "#8A5A12", fontWeight: 700, marginBottom: 6 }}>Next roll number (for new enrolments)</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input className="input" placeholder="e.g. 19362" inputMode="numeric" value={rollStart} onChange={(e) => setRollStart(e.target.value.replace(/[^0-9]/g, ""))} style={{ margin: 0, width: 130 }} />
+            <button className="btnP" onClick={setStartingRoll} style={{ background: "#E8912A" }}>Set</button>
+          </div>
+          <p style={{ fontSize: 11.5, color: "#8A5A12", margin: "6px 2px 0" }}>The next accepted student gets this number, then it counts up. Importing students sets this automatically.</p>
+        </div>
+        {cleanMsg && <div style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700, marginTop: 10 }}>{cleanMsg}</div>}
       </div>
 
       <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--tintBlue)", border: "none" }}>
