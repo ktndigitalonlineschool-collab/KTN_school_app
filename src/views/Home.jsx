@@ -133,7 +133,7 @@ export default function Home({ news, site, onGo, onLightbox }) {
         <h2 className="h2" style={{ marginBottom: 10 }}>Life at KTN</h2>
         <div className="gstrip">
           {gallery.map((p, i) => (
-            <div key={i} className="gphoto" onClick={() => onLightbox(p)}>
+            <div key={i} className="gphoto" onClick={() => onLightbox(p)} style={p.wide ? { width: 300, height: 160 } : undefined}>
               <img src={p.src} alt={p.cap} />
               <div className="cap">{p.cap}</div>
             </div>

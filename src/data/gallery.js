@@ -12,6 +12,6 @@ const entries = Object.keys(mods).sort((a, b) => {
 const builtins = entries.map((path, i) => ({ src: mods[path], cap: CAPS[i] || "" }));
 
 export const GALLERY = [
-  { src: teachersAnnual, cap: "KTN teachers · Annual Day" },
+  { src: teachersAnnual, cap: "KTN teachers · Annual Day", wide: true },
   ...builtins,
 ];
