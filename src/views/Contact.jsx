@@ -2,6 +2,7 @@ import { useState } from "react";
 import Icon from "../data/icons.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import * as store from "../lib/store";
+import { notifySchool } from "../lib/drive";
 
 const CONTACT = [
   ["mail", "Email", "ktndigitalonlineschool@gmail.com"],
@@ -20,6 +21,10 @@ export default function Contact() {
     setBusy(true);
     try {
       await store.addMessage({ name: form.name.trim(), email: form.email.trim(), message: form.message.trim(), date: new Date().toISOString() });
+      notifySchool(
+        `New message from ${form.name.trim() || "visitor"}`,
+        `A new message was sent through the Contact form.\n\nName: ${form.name.trim()}\nEmail: ${form.email.trim()}\n\nMessage:\n${form.message.trim()}\n\nOpen Admin → Messages to read and reply.`
+      );
       setDone(true);
     } finally { setBusy(false); }
   }

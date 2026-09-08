@@ -23,6 +23,7 @@ import logo from "./assets/logo.png";
 import { hasFirebase } from "./lib/firebase";
 import { subscribeAuth, signOutUser, getDemoSession } from "./lib/auth";
 import * as store from "./lib/store";
+import { notifySchool, sendApplicantConfirmation } from "./lib/drive";
 
 export default function App() {
   const [session, setSession] = useState(hasFirebase ? undefined : getDemoSession());
@@ -117,7 +118,14 @@ function PublicSite({ onSignIn }) {
   }, []);
 
   function go(next) { setTab(next); if (mainRef.current) mainRef.current.scrollTop = 0; }
-  async function submitApply(record) { await store.addApp(record); }
+  async function submitApply(record) {
+    await store.addApp(record);
+    notifySchool(
+      `New application: ${record.student || record.name || "student"} (${record.grade || "?"})`,
+      `A new admission application was submitted.\n\nStudent: ${record.student || record.name || ""}\nClass: ${record.grade || ""}\nParent: ${record.parent || ""}\nMobile: ${record.phone || record.mobile || ""}\nEmail: ${record.email || ""}\n\nOpen Admin → Admissions to review and enrol.`
+    );
+    if (record.email) sendApplicantConfirmation({ toEmail: record.email, toName: record.parent || record.student, grade: record.grade });
+  }
 
   function view() {
     switch (tab) {

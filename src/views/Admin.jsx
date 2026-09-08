@@ -13,7 +13,7 @@ import { ROSTER, ROSTER_MAX_ROLL } from "../data/roster";
 import { fmtDate, normRoll } from "../lib/util";
 import { hasFirebase } from "../lib/firebase";
 import { createStudentAccount, createTeacherAccount, resetPassword } from "../lib/auth";
-import { sendWelcomeEmail } from "../lib/email";
+import { sendWelcomeMail } from "../lib/drive";
 import * as store from "../lib/store";
 
 const TABS = [
@@ -262,7 +262,7 @@ function Students() {
       const rand = Math.random().toString(36).slice(2, 12) + "Aa1!";
       await createStudentAccount({ email: s.email, password: rand, studentId: s.id, name: s.name, grade: s.grade || "", rollNumber: s.rollNumber || s.code || "" });
       await resetPassword(s.email);
-      try { await sendWelcomeEmail({ toEmail: s.email, toName: s.fatherName || s.name, rollNumber: s.rollNumber || s.code, grade: s.grade }); } catch { /* optional */ }
+      try { await sendWelcomeMail({ toEmail: s.email, toName: s.fatherName || s.name, rollNumber: s.rollNumber || s.code, grade: s.grade }); } catch (e) { /* optional */ }
       setInviteMsg(`Set-password email sent to ${s.email} (roll ${s.rollNumber || s.code}).`);
     } catch (e) {
       if (String(e.code || "").includes("email-already-in-use")) { try { await resetPassword(s.email); setInviteMsg(`${s.email} already had an account, set-password link re-sent.`); } catch { setInviteMsg(`Couldn't email ${s.email}.`); } }
@@ -539,7 +539,7 @@ function Admissions() {
           const rand = Math.random().toString(36).slice(2, 12) + "Aa1!";
           await createStudentAccount({ email: a.email, password: rand, studentId: rec.id, name: a.student, grade: a.grade || "", rollNumber: roll });
           await resetPassword(a.email);
-          try { await sendWelcomeEmail({ toEmail: a.email, toName: a.parent || a.student, rollNumber: roll, grade: a.grade }); } catch { /* welcome email optional */ }
+          try { await sendWelcomeMail({ toEmail: a.email, toName: a.parent || a.student, rollNumber: roll, grade: a.grade }); } catch (e) { /* optional */ }
           note += ` A “set your password” email was sent to ${a.email}.`;
         } catch (e) {
           if (String(e.code || "").includes("email-already-in-use")) {

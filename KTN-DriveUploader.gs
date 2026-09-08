@@ -38,11 +38,21 @@ function doPost(e) {
         downloadUrl: "https://drive.google.com/uc?export=download&id=" + id
       });
     }
+    if (req.action === "notify") {
+      var to = req.to || NOTIFY_EMAIL;
+      var subject = req.subject || "KTN website notification";
+      var opts = { name: "KTN Digital Online School" };
+      if (req.html) opts.htmlBody = req.html;
+      MailApp.sendEmail(to, subject, req.body || "", opts);
+      return json({ ok: true, sent: true });
+    }
     return json({ ok: false, error: "Unknown action" });
   } catch (err) {
     return json({ ok: false, error: String(err) });
   }
 }
+
+var NOTIFY_EMAIL = "ktndigitalonlineschool@gmail.com"; // where alerts are sent
 
 function getFolderByPath(path) {
   var parent = getOrCreate(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);

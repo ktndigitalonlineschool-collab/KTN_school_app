@@ -48,3 +48,13 @@ Drive, and open in an in-app viewer with a Download option.
   use **Deploy → Manage deployments → Edit → New version** so the URL keeps working.
 - If the keys are absent, the app quietly falls back to the paste-a-link method —
   nothing breaks.
+
+## Email alerts for new applications & messages
+The same Apps Script now also emails the school when someone submits the Apply or
+Contact form. The address is set by `NOTIFY_EMAIL` near the top of
+`KTN-DriveUploader.gs` (default: ktndigitalonlineschool@gmail.com).
+
+If you already deployed the script earlier, you must push the new code:
+**Deploy → Manage deployments → Edit (pencil) → Version: New version → Deploy.**
+The first time it sends mail, Google may ask you to re-authorise (allow it).
+Alerts are best-effort; every submission is always saved in Admin regardless.
