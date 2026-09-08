@@ -631,19 +631,21 @@ function Teachers() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({ name: "", assignments: [], joined: "" });
+  const [editForm, setEditForm] = useState({ name: "", assignments: [], joined: "", left: "" });
   useEffect(() => { store.listStaff().then(setList); }, []);
 
   function startEdit(s) {
     const asg = s.assignments && s.assignments.length ? s.assignments : (s.grades || []).map((g) => ({ subject: s.subject, grade: g }));
-    setEditId(s.id); setEditForm({ name: s.name || "", assignments: asg, joined: s.joined || "" });
+    setEditId(s.id); setEditForm({ name: s.name || "", assignments: asg, joined: s.joined || "", left: s.left || "" });
   }
   async function saveEdit(s) {
-    const patch = { name: editForm.name.trim(), assignments: editForm.assignments, joined: editForm.joined.trim() };
+    const left = editForm.left.trim();
+    const patch = { name: editForm.name.trim(), assignments: editForm.assignments, joined: editForm.joined.trim(), left };
     const { subject, grades } = deriveAssignments(editForm.assignments);
     const full = { ...patch, subject, grades };
     await store.updateStaff(s.id, full);
-    if (s.uid) await store.updateUserDoc(s.uid, full);
+    // Archived (has a left year) => block login by changing their role; restore to teacher if un-set.
+    if (s.uid) await store.updateUserDoc(s.uid, { ...full, role: left ? "archived" : "teacher" });
     setList((l) => l.map((x) => (x.id === s.id ? { ...x, ...full } : x)));
     setEditId(null);
   }
@@ -689,6 +691,9 @@ function Teachers() {
               <TeacherAssignments value={editForm.assignments} onChange={(a) => setEditForm((f) => ({ ...f, assignments: a }))} />
               <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Joined KTN (year)</label>
               <input className="input" placeholder="e.g. 2019" inputMode="numeric" value={editForm.joined} onChange={(e) => setEditForm((f) => ({ ...f, joined: e.target.value.replace(/[^0-9]/g, "").slice(0, 4) }))} />
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Left KTN (year) <span style={{ color: "var(--inkSoft)", fontWeight: 600 }}>· leave blank if still teaching</span></label>
+              <input className="input" placeholder="e.g. 2024" inputMode="numeric" value={editForm.left} onChange={(e) => setEditForm((f) => ({ ...f, left: e.target.value.replace(/[^0-9]/g, "").slice(0, 4) }))} />
+              {editForm.left && <div style={{ fontSize: 11.5, color: "#B76A0E", fontWeight: 600, margin: "0 2px 10px" }}>This teacher will be moved to “Past teachers” and their login will be disabled.</div>}
               <div style={{ display: "flex", gap: 8 }}>
                 <button className="btnP" onClick={() => saveEdit(s)} style={{ flex: 1, justifyContent: "center" }}>Save changes</button>
                 <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 16px", fontWeight: 600 }}>Cancel</button>
@@ -869,10 +874,10 @@ function Photos() {
     <>
       <div className="card" style={{ padding: 15, marginBottom: 16, borderColor: "var(--azure)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Add a photo to the home gallery</div>
-        <input className="input" placeholder="Image link (https://…)" value={form.src} onChange={(e) => setForm((f) => ({ ...f, src: e.target.value }))} />
-        <input className="input" placeholder="Caption" value={form.cap} onChange={(e) => setForm((f) => ({ ...f, cap: e.target.value }))} />
+        <ImagePicker value={form.src} onChange={(v) => setForm((f) => ({ ...f, src: v }))} shape="square" maxSize={900} quality={0.75} />
+        <input className="input" placeholder="Caption (e.g. KTN teachers, annual day)" value={form.cap} onChange={(e) => setForm((f) => ({ ...f, cap: e.target.value }))} />
         <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add photo</button>
-        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Paste a link to a photo already online. Direct phone uploads need Firebase Storage, ask me to wire it up.</p>
+        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload a photo from your phone or computer, or paste an image link. Uploaded photos are shrunk automatically to keep things fast and free.</p>
       </div>
       {list === null ? <p className="para">Loading…</p> : (list || []).length === 0 ? (
         <div className="card" style={{ padding: 24, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>No added photos yet. The built-in gallery still shows on the home page.</div>
@@ -896,18 +901,18 @@ function Photos() {
 /* ---------- Teacher profiles (public directory) ---------- */
 function TeacherProfiles() {
   const [list, setList] = useState(null);
-  const [form, setForm] = useState({ name: "", role: "", joined: "", photo: "" });
+  const [form, setForm] = useState({ name: "", role: "", joined: "", left: "", photo: "" });
   const [busy, setBusy] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [edit, setEdit] = useState({ name: "", role: "", joined: "", photo: "" });
+  const [edit, setEdit] = useState({ name: "", role: "", joined: "", left: "", photo: "" });
   useEffect(() => { store.listDirectory().then(setList); }, []);
 
   async function add() {
     if (!form.name.trim()) return;
     setBusy(true);
     try {
-      const rec = await store.addDirectory({ name: form.name.trim(), role: form.role.trim(), joined: form.joined.trim(), photo: form.photo || "" });
-      setList((l) => [...(l || []), rec]); setForm({ name: "", role: "", joined: "", photo: "" });
+      const rec = await store.addDirectory({ name: form.name.trim(), role: form.role.trim(), joined: form.joined.trim(), left: form.left.trim(), photo: form.photo || "" });
+      setList((l) => [...(l || []), rec]); setForm({ name: "", role: "", joined: "", left: "", photo: "" });
     } finally { setBusy(false); }
   }
   async function importBuiltin() {
@@ -919,7 +924,7 @@ function TeacherProfiles() {
     } finally { setBusy(false); }
   }
   async function remove(id) { await store.removeDirectory(id); setList((l) => l.filter((d) => d.id !== id)); }
-  function startEdit(d) { setEditId(d.id); setEdit({ name: d.name, role: d.role || "", joined: d.joined || "", photo: d.photo || "" }); }
+  function startEdit(d) { setEditId(d.id); setEdit({ name: d.name, role: d.role || "", joined: d.joined || "", left: d.left || "", photo: d.photo || "" }); }
   async function saveEdit(id) { await store.updateDirectory(id, edit); setList((l) => l.map((d) => (d.id === id ? { ...d, ...edit } : d))); setEditId(null); }
 
   return (
@@ -937,6 +942,7 @@ function TeacherProfiles() {
         <input className="input" placeholder="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         <input className="input" placeholder="Role (e.g. Grade 3 · English)" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} />
         <input className="input" placeholder="Since (e.g. 2020)" value={form.joined} onChange={(e) => setForm((f) => ({ ...f, joined: e.target.value }))} />
+        <input className="input" placeholder="Left (blank if still teaching)" value={form.left} onChange={(e) => setForm((f) => ({ ...f, left: e.target.value }))} />
         <button className="btnP" onClick={add} disabled={busy} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add profile</button>
       </div>
 
@@ -946,6 +952,7 @@ function TeacherProfiles() {
           <input className="input" placeholder="Name" value={edit.name} onChange={(e) => setEdit((s) => ({ ...s, name: e.target.value }))} />
           <input className="input" placeholder="Role" value={edit.role} onChange={(e) => setEdit((s) => ({ ...s, role: e.target.value }))} />
           <input className="input" placeholder="Since" value={edit.joined} onChange={(e) => setEdit((s) => ({ ...s, joined: e.target.value }))} />
+          <input className="input" placeholder="Left (blank if still teaching)" value={edit.left} onChange={(e) => setEdit((s) => ({ ...s, left: e.target.value }))} />
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btnP" onClick={() => saveEdit(d.id)} style={{ flex: 1, justifyContent: "center" }}>Save</button>
             <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 14px" }}>Cancel</button>
@@ -956,7 +963,7 @@ function TeacherProfiles() {
           {d.photo ? <img src={d.photo} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} /> : <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#EAF1FF" }} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{d.name}</div>
-            <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>{d.role}{d.joined ? ` · since ${d.joined}` : ""}</div>
+            <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>{d.role}{d.joined ? (d.left ? ` · ${d.joined}\u2013${d.left}` : ` · since ${d.joined}`) : ""}</div>
           </div>
           <button className="btnGhost" onClick={() => startEdit(d)} style={{ padding: 7 }}><Icon name="pin" size={13} color="#52617A" /></button>
           <button className="btnGhost" onClick={() => remove(d.id)}><Icon name="trash" size={15} color="#FF6B5E" /></button>

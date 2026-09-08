@@ -39,7 +39,7 @@ export default function App() {
   // Signed in
   if (session) {
     const logout = async () => { await signOutUser(); setSession(null); setScreen("site"); };
-    if (session.role === "pending" || session.role === "rejected" || session.role === "none") {
+    if (session.role === "pending" || session.role === "rejected" || session.role === "none" || session.role === "archived") {
       return <StatusScreen role={session.role} email={session.email} uid={session.uid} onLogout={logout} />;
     }
     return (
@@ -76,6 +76,7 @@ function StatusScreen({ role, email, uid, onLogout }) {
     pending: { ic: "clock", col: "#B76A0E", tint: "#FDEEDA", title: "Waiting for approval", body: "Your registration has been received. An admin will approve your account soon, then you can sign in and see your portal." },
     rejected: { ic: "x", col: "#FF6B5E", tint: "#FCEDEC", title: "Account not approved", body: "This account wasn't approved. Please contact the school if you think this is a mistake." },
     none: { ic: "info", col: "#52617A", tint: "#EEF1F7", title: "Account not set up", body: "This account isn't linked to a role yet. To make it an admin, create a document in the Firestore “users” collection whose ID is exactly the code below, with a field role = admin." },
+    archived: { ic: "heart", col: "#B76A0E", tint: "#FDEEDA", title: "With gratitude", body: "This teaching account is no longer active. Thank you for your dedication and service to KTN Digital Online School. If you think this is a mistake, please contact the school." },
   };
   const m = map[role] || map.none;
   return (

@@ -6,6 +6,7 @@ import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
 import { fmtDate, classCancelledToday, driveFolderPath } from "../lib/util";
 import { hasDrive, uploadToDrive } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
+import { TEACHERS } from "../data/teachers";
 import * as store from "../lib/store";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -432,16 +433,25 @@ export default function Teacher({ user }) {
   }
 
   const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["link", "Class link", "globe"]];
+  const norm = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
+  const match = TEACHERS.find((t) => norm(t.name) === norm(user.name));
+  const photo = (user.photo) || (match && match.photo) || "";
+  const first = (user.name || "Teacher").split(" ")[0];
+  const roleSummary = regular.length ? (regular.length > 1 ? `${regular[0].subject} · ${regular.length} classes` : `${regular[0].subject} · ${regular[0].grade}`) : (specials.length ? specials.map((s) => s.subject).join(", ") : "");
+  const expYears = user.joined ? new Date().getFullYear() - parseInt(user.joined, 10) : 0;
 
   return (
     <>
-      <SectionTitle eyebrow={`Welcome, ${user.name.split(" ")[0]}`} title={tab === "today" ? "Your day" : tab === "attendance" ? "Attendance" : tab === "marks" ? "Enter marks" : tab === "link" ? "Class link" : "Assignments"} />
-      {user.joined && (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--tintBlue)", color: "var(--azure)", padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
-          <Icon name="award" size={13} color="#2F6BFF" sw={2.4} /> Teaching since {user.joined}
-          {(() => { const y = new Date().getFullYear() - parseInt(user.joined, 10); return y > 0 ? ` · ${y} ${y === 1 ? "year" : "years"} of experience` : ""; })()}
+      <div className="card" style={{ padding: 16, background: "linear-gradient(135deg, var(--navy), var(--azure))", border: "none", display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+        {photo
+          ? <img src={photo} alt={user.name} style={{ width: 56, height: 56, borderRadius: 18, objectFit: "cover", border: "2px solid rgba(255,255,255,.5)", flexShrink: 0 }} />
+          : <div style={{ width: 56, height: 56, borderRadius: 18, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 19, flexShrink: 0 }}>{(user.name || "?").split(" ").slice(0, 2).map((w) => w[0]).join("")}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 600 }}>Teacher</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", fontSize: 19, fontWeight: 800, marginTop: 1 }}>Hello, {first}!</div>
+          <div style={{ color: "#FFD9A6", fontSize: 12, marginTop: 3 }}>{roleSummary}{user.joined ? ` · since ${user.joined}${expYears > 0 ? ` (${expYears} yr${expYears === 1 ? "" : "s"})` : ""}` : ""}</div>
         </div>
-      )}
+      </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {TABS.map(([k, label, ic]) => (
           <button key={k} className="btnP" onClick={() => setTab(k)} style={{ background: tab === k ? "var(--azure)" : "#fff", color: tab === k ? "#fff" : "var(--inkSoft)", border: "1px solid " + (tab === k ? "var(--azure)" : "var(--line)") }}>

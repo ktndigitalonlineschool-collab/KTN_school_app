@@ -31,6 +31,8 @@ export default function Student({ user }) {
   const [asg, setAsg] = useState([]);
   const [subs, setSubs] = useState({});
   const [cls, setCls] = useState({});
+  const [me, setMe] = useState(null);
+  const [tab, setTab] = useState("today");
   const [loading, setLoading] = useState(true);
   const [viewer, setViewer] = useState(null);
   const [upId, setUpId] = useState(null);
@@ -45,7 +47,8 @@ export default function Student({ user }) {
       user.grade ? store.listAssignmentsByGrade(user.grade) : Promise.resolve([]),
       store.getStudentSubmissions(user.id),
       user.grade ? store.listClassLinksByGrade(user.grade) : Promise.resolve({}),
-    ]).then(([m, a, t, n, ag, sb, cl]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setLoading(false); });
+      store.getStudent(user.id).catch(() => null),
+    ]).then(([m, a, t, n, ag, sb, cl, rec]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setMe(rec); setLoading(false); });
     return () => { live = false; };
   }, [user.id, user.grade]);
 
@@ -134,9 +137,12 @@ export default function Student({ user }) {
       {/* HEADER CARD */}
       <div className="card" style={{ padding: 18, background: "linear-gradient(135deg, var(--navy), var(--azure))", border: "none", display: "flex", alignItems: "center", gap: 14, position: "relative", overflow: "visible" }}>
         <Mascot size={52} className="mascot-peek" style={{ top: -22, right: 12 }} />
+        {me && me.photo
+          ? <img src={me.photo} alt={user.name} style={{ width: 58, height: 58, borderRadius: 18, objectFit: "cover", border: "2px solid rgba(255,255,255,.5)", flexShrink: 0 }} />
+          : <div style={{ width: 58, height: 58, borderRadius: 18, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 20, flexShrink: 0 }}>{(user.name || "?").split(" ").slice(0, 2).map((w) => w[0]).join("")}</div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 600 }}>{user.grade || "Student"}</div>
-          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", fontSize: 21, fontWeight: 800, marginTop: 2, lineHeight: 1.1 }}>{user.name}</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", fontSize: 20, fontWeight: 800, marginTop: 2, lineHeight: 1.1 }}>{user.name}</div>
           <div style={{ color: "#FFD9A6", fontSize: 12.5, marginTop: 4 }}>Roll {normRoll(user.rollNumber || user.code) || "-"}</div>
         </div>
         <div style={{ position: "relative", width: 66, height: 66 }}>
@@ -148,6 +154,16 @@ export default function Student({ user }) {
         </div>
       </div>
 
+      {/* TABS */}
+      <div style={{ display: "flex", gap: 8, margin: "16px 0", flexWrap: "wrap" }}>
+        {[["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["profile", "Profile", "cap"]].map(([k, label, ic]) => (
+          <button key={k} className="btnP" onClick={() => setTab(k)} style={{ background: tab === k ? "var(--azure)" : "#fff", color: tab === k ? "#fff" : "var(--inkSoft)", border: "1px solid " + (tab === k ? "var(--azure)" : "var(--line)") }}>
+            <Icon name={ic} size={15} color={tab === k ? "#fff" : "#52617A"} sw={2.4} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "today" && (<>
       {/* THIS WEEK'S CLASSES */}
       <h3 className="h2" style={{ margin: "22px 0 10px" }}>This week's classes</h3>
       {weekRows.length === 0 ? (
@@ -188,6 +204,9 @@ export default function Student({ user }) {
         );
       })}
 
+      </>)}
+
+      {tab === "attendance" && (<>
       {/* ATTENDANCE */}
       <h3 className="h2" style={{ margin: "22px 0 10px" }}>Attendance</h3>
       <div className="card" style={{ padding: 16 }}>
@@ -209,6 +228,9 @@ export default function Student({ user }) {
         })}
       </div>
 
+      </>)}
+
+      {tab === "marks" && (<>
       {/* MARKS */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "22px 0 10px" }}>
         <h3 className="h2">Marks</h3>
@@ -248,6 +270,9 @@ export default function Student({ user }) {
         );
       })}
 
+      </>)}
+
+      {tab === "work" && (<>
       {/* ASSIGNMENTS */}
       <h3 className="h2" style={{ margin: "22px 0 10px" }}>Assignments</h3>
       {asg.length === 0 ? (
@@ -288,6 +313,9 @@ export default function Student({ user }) {
         </div>
       ))}
 
+      </>)}
+
+      {tab === "today" && (<>
       {/* NOTICE */}
       {pinned && (<>
         <h3 className="h2" style={{ margin: "22px 0 10px" }}>Notice</h3>
@@ -297,9 +325,14 @@ export default function Student({ user }) {
           <p className="para" style={{ margin: 0, fontSize: 13 }}>{pinned.body}</p>
         </div>
       </>)}
+      </>)}
+
+      {tab === "profile" && (<>
       {/* MY PROFILE */}
       <h3 className="h2" style={{ margin: "22px 0 10px" }}>My profile</h3>
       <StudentProfile user={user} />
+
+      </>)}
 
       <div style={{ height: 10 }} />
       {viewer && <FileViewer file={viewer} onClose={() => setViewer(null)} />}
