@@ -250,8 +250,16 @@ function TeacherAssignments({ grades, subject }) {
 
   if (grades.length === 0) return <div className="card" style={{ padding: 20, color: "var(--inkSoft)", fontSize: 14 }}>Assignments are for grade classes. Your special-class tools are coming soon.</div>;
 
+  const [addErr, setAddErr] = useState("");
   async function add() {
-    if (!form.title.trim()) return;
+    setAddErr("");
+    if (!form.title.trim()) { setAddErr("Please add a title."); return; }
+    const hasFile = Boolean(form.link.trim());
+    const hasInstructions = form.instructions.trim().length > 0;
+    if (!hasFile && !hasInstructions) {
+      setAddErr("An assignment needs a worksheet, or written instructions telling students what to submit. Please add one of them.");
+      return;
+    }
     const rec = await store.addAssignment({ grade: form.grade, subject, title: form.title.trim(), instructions: form.instructions.trim(), link: form.link.trim(), viewUrl: form.viewUrl, openUrl: form.openUrl, downloadUrl: form.downloadUrl, fileName: form.fileName, due: form.due });
     setList((l) => [rec, ...(l || [])]); setForm({ grade: form.grade, title: "", instructions: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "", due: "" }); setOpen(false);
   }
@@ -264,8 +272,11 @@ function TeacherAssignments({ grades, subject }) {
       setDetail((d) => ({ ...d, [a.id]: { students, subs } }));
     }
   }
-  async function review(a, st) {
-    const rec = await store.setSubmission(a.id, st.id, a.grade, { status: "reviewed", reviewedAt: new Date().toISOString() });
+  async function review(a, st) { await setStatus(a, st, "reviewed"); }
+  async function setStatus(a, st, status) {
+    const rec = await store.setSubmission(a.id, st.id, a.grade, status === "reviewed"
+      ? { status: "reviewed", reviewedAt: new Date().toISOString() }
+      : { status: "submitted", reviewedAt: "" });
     setDetail((d) => ({ ...d, [a.id]: { ...d[a.id], subs: { ...d[a.id].subs, [st.id]: rec } } }));
   }
 
@@ -285,7 +296,7 @@ function TeacherAssignments({ grades, subject }) {
             <select className="input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>{grades.map((g) => <option key={g}>{g}</option>)}</select>
           )}
           <input className="input" placeholder="Title (e.g. Worksheet 5 — Nouns)" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
-          <textarea className="input" rows={2} placeholder="Instructions (optional)" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} style={{ resize: "vertical" }} />
+          <textarea className="input" rows={2} placeholder="Instructions — what students should do / submit (required if there's no worksheet)" value={form.instructions} onChange={(e) => setForm((f) => ({ ...f, instructions: e.target.value }))} style={{ resize: "vertical" }} />
           {hasDrive ? (
             <div style={{ marginBottom: 10 }}>
               <label className="btnP" style={{ width: "100%", justifyContent: "center", background: form.fileName ? "#1E9E5A" : "var(--tintBlue)", color: form.fileName ? "#fff" : "var(--azure)", cursor: "pointer" }}>
@@ -299,6 +310,7 @@ function TeacherAssignments({ grades, subject }) {
           )}
           <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" }}>Due date (optional)</label>
           <input className="input" type="date" value={form.due} onChange={(e) => setForm((f) => ({ ...f, due: e.target.value }))} />
+          {addErr && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>{addErr}</div>}
           <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}>Post assignment</button>
           <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload the worksheet to Google Drive, then paste its share link here — this keeps storage free.</p>
         </div>
@@ -339,7 +351,8 @@ function TeacherAssignments({ grades, subject }) {
                     <div key={st.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 2px", gap: 6 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, flex: 1, minWidth: 0 }}>{st.name}</div>
                       {s && (s.viewUrl || s.link) && <button className="btnGhost" onClick={() => setViewer({ name: st.name + " — work", viewUrl: s.viewUrl, downloadUrl: s.downloadUrl || s.link, openUrl: s.openUrl || s.link })} style={{ padding: 7 }} title="Open student's work"><Icon name="book" size={14} color="#2F6BFF" /></button>}
-                      {status === "reviewed" ? <span className="pillBadge" style={{ background: "#E1F5EE", color: "#1E7A45" }}><Icon name="check" size={12} color="#1E7A45" sw={2.5} /> Done</span>
+                      {status === "reviewed"
+                        ? <button className="pillBadge" onClick={() => setStatus(a, st, "submitted")} title="Tap to undo" style={{ background: "#E1F5EE", color: "#1E7A45", border: "none", cursor: "pointer" }}><Icon name="check" size={12} color="#1E7A45" sw={2.5} /> Done ✕</button>
                         : <button className="btnP" onClick={() => review(a, st)} style={{ padding: "7px 12px", fontSize: 12.5, background: status === "submitted" ? "#1E9E5A" : "#fff", color: status === "submitted" ? "#fff" : "var(--inkSoft)", border: status === "submitted" ? "none" : "1px solid var(--line)" }}>
                             {status === "submitted" ? "✓ Mark done" : "Mark done"}
                           </button>}

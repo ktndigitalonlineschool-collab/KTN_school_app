@@ -18,14 +18,15 @@ function fileToBase64(file) {
 
 // folder: e.g. "Grade 3" or "Submissions/Grade 3". Returns
 // { fileId, name, viewUrl, openUrl, downloadUrl }.
-export async function uploadToDrive(folder, file) {
+export async function uploadToDrive(folder, file, nameOverride) {
   if (!hasDrive) throw new Error("Drive upload isn't set up yet.");
   const dataBase64 = await fileToBase64(file);
+  const name = nameOverride || file.name;
   // text/plain avoids a CORS preflight to Apps Script
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "upload", token: TOKEN, folder, name: file.name, mime: file.type || "application/octet-stream", dataBase64 }),
+    body: JSON.stringify({ action: "upload", token: TOKEN, folder, name, mime: file.type || "application/octet-stream", dataBase64 }),
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || "Upload failed");

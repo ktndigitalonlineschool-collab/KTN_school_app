@@ -56,7 +56,9 @@ export default function Student({ user }) {
     if (!file) return;
     setUpId(a.id);
     try {
-      const r = await uploadToDrive(driveFolderPath(user.grade, a.subject, "Student Work", a.due), file);
+      const roll = normRoll(user.rollNumber || user.code) || "noroll";
+      const uploadName = `${roll} - ${(user.name || "student").trim()} - ${file.name}`;
+      const r = await uploadToDrive(driveFolderPath(user.grade, a.subject, "Student Work", a.due), file, uploadName);
       const rec = await store.setSubmission(a.id, user.id, user.grade, { status: "submitted", submittedAt: new Date().toISOString(), link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name });
       setSubs((s) => ({ ...s, [a.id]: rec }));
     } catch (e) { alert(e.message || "Upload failed"); }
