@@ -28,6 +28,10 @@ function doPost(e) {
       var folder = getFolderByPath(req.folder || "General");
       var bytes = Utilities.base64Decode(req.dataBase64);
       var blob = Utilities.newBlob(bytes, req.mime || "application/octet-stream", req.name || "file");
+      // Override: remove any existing file of the same name in this folder first,
+      // so re-uploading the same grade/subject/file replaces it (no duplicates).
+      var existing = folder.getFilesByName(req.name || "file");
+      while (existing.hasNext()) { existing.next().setTrashed(true); }
       var file = folder.createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       var id = file.getId();

@@ -896,7 +896,7 @@ function Ebooks() {
         const r = await uploadToDrive(folder, files[i]);
         const rec = await store.addEbook({ grade, subject: subject.trim(), title: clean(files[i].name), link: r.downloadUrl || r.openUrl || "", viewUrl: r.viewUrl || "", openUrl: r.openUrl || "", downloadUrl: r.downloadUrl || "", fileName: r.name || files[i].name });
         added.push(rec);
-        setList((l) => [rec, ...(l || [])]);
+        setList((l) => { const rest = (l || []).filter((x) => x.id !== rec.id); return [rec, ...rest]; });
       }
       setProg(`Done — added ${added.length} ebook${added.length === 1 ? "" : "s"} to ${grade} · ${subject.trim()}.`);
       setSubject("");
@@ -924,6 +924,18 @@ function Ebooks() {
       return;
     }
     await uploadMany(picked.filter((f) => /\.pdf$/i.test(f.name)));
+  }
+
+  async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
+
+  const [editId, setEditId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubject, setEditSubject] = useState("");
+  async function saveEbookEdit(id) {
+    const patch = { title: editTitle.trim(), subject: editSubject.trim() };
+    await store.updateEbook(id, patch);
+    setList((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    setEditId(null);
   }
 
   const byGrade = {};
@@ -963,14 +975,24 @@ function Ebooks() {
       ) : GRADES.filter((g) => byGrade[g]).map((g) => (
         <div key={g} style={{ marginBottom: 14 }}>
           <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 13, color: "var(--azure)", margin: "4px 2px 8px" }}>{g}</div>
-          {byGrade[g].map((e) => (
-            <div key={e.id} className="card" style={{ padding: "11px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+          {byGrade[g].map((e) => editId === e.id ? (
+            <div key={e.id} className="card" style={{ padding: 12, marginBottom: 8, borderColor: "var(--azure)" }}>
+              <input className="input" value={editTitle} onChange={(ev) => setEditTitle(ev.target.value)} placeholder="Title" />
+              <input className="input" value={editSubject} onChange={(ev) => setEditSubject(ev.target.value)} placeholder="Subject" />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btnP" onClick={() => saveEbookEdit(e.id)} style={{ flex: 1, justifyContent: "center" }}>Save</button>
+                <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 14px" }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div key={e.id} className="card" style={{ padding: "11px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={18} color="#2F6BFF" sw={2.2} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{e.title}</div>
                 <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>{e.subject || "General"}</div>
               </div>
               {(e.openUrl || e.link) && <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnGhost" style={{ padding: 7 }} title="Open"><Icon name="globe" size={14} color="#2F6BFF" /></a>}
+              <button className="btnGhost" onClick={() => { setEditId(e.id); setEditTitle(e.title || ""); setEditSubject(e.subject || ""); }} style={{ padding: 7 }} title="Rename"><Icon name="edit" size={14} color="#2F6BFF" /></button>
               <button className="btnGhost" onClick={() => remove(e.id)} style={{ padding: 7 }}><Icon name="trash" size={14} color="#FF6B5E" /></button>
             </div>
           ))}

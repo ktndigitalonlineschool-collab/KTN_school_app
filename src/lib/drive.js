@@ -28,7 +28,10 @@ export async function uploadToDrive(folder, file, nameOverride) {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ action: "upload", token: TOKEN, folder, name, mime: file.type || "application/octet-stream", dataBase64 }),
   });
-  const json = await res.json();
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch (e) { throw new Error("Drive returned a web page, not data. Re-deploy the Apps Script as a NEW version (Deploy → Manage deployments → Edit → New version), set access to \"Anyone\", and re-authorise it."); }
   if (!json.ok) throw new Error(json.error || "Upload failed");
   // Fill any missing URL fields from the file id (older script versions may
   // return fewer fields). Never return undefined — Firestore rejects it.

@@ -657,9 +657,16 @@ export async function listClassLinksByGrade(grade) {
 /* Files live in Google Drive; we store only a link record (grade, title, subject, url). */
 export async function addEbook(data) {
   const clean = {}; Object.keys(data || {}).forEach((k) => { clean[k] = data[k] == null ? "" : data[k]; });
+  // Replace an existing entry with the same grade + subject + title (no duplicates).
+  const existing = (await listEbooks()).find((e) => e.grade === clean.grade && (e.subject || "") === (clean.subject || "") && (e.title || "") === (clean.title || ""));
+  if (existing) { await updateEbook(existing.id, clean); return { id: existing.id, ...existing, ...clean }; }
   const rec = { ...clean, createdAt: new Date().toISOString() };
   if (hasFirebase) { const ref = await addDoc(collection(db, "ebooks"), rec); return { id: ref.id, ...rec }; }
   const list = lsGet("ktn_ebooks", []); const r = { id: "eb" + Date.now(), ...rec }; lsSet("ktn_ebooks", [r, ...list]); return r;
+}
+export async function updateEbook(id, patch) {
+  if (hasFirebase) { await setDoc(doc(db, "ebooks", id), patch, { merge: true }); return; }
+  lsSet("ktn_ebooks", lsGet("ktn_ebooks", []).map((e) => (e.id === id ? { ...e, ...patch } : e)));
 }
 export async function removeEbook(id) {
   if (hasFirebase) { await deleteDoc(doc(db, "ebooks", id)); return; }
