@@ -414,27 +414,95 @@ function ClassLinks({ classes }) {
 }
 
 /* ---------------- Teacher Ebooks (read-only) ---------------- */
-function TeacherEbooks({ grades }) {
+function TeacherEbooks({ grades, subjects, specials = [] }) {
+  const lbl = { fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "6px 0 6px" };
+  // Categories a teacher can add books for: each regular grade, plus each special/extra class.
+  const categories = [...grades, ...specials];
+  const isSpecial = (c) => specials.includes(c);
   const [list, setList] = useState(null);
+  const [cat, setCat] = useState(categories[0] || "");
+  const [subject, setSubject] = useState(subjects[0] || "");
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [eTitle, setETitle] = useState("");
+  const [eSubject, setESubject] = useState("");
   useEffect(() => {
-    Promise.all(grades.map((g) => store.listEbooksByGrade(g))).then((res) => setList(res.flat()));
+    Promise.all(categories.map((c) => store.listEbooksByGrade(c))).then((res) => setList(res.flat()));
   }, []);
+
+  async function add() {
+    setErr("");
+    if (!title.trim()) { setErr("Add a title."); return; }
+    if (!/^https?:\/\//i.test(url.trim())) { setErr("Paste a valid Drive link (https://…)."); return; }
+    const u = url.trim();
+    const subj = isSpecial(cat) ? "" : subject.trim();
+    const rec = await store.addEbook({ grade: cat, subject: subj, title: title.trim(), link: u, openUrl: u, viewUrl: "", downloadUrl: "", fileName: "" });
+    setList((l) => { const rest = (l || []).filter((x) => x.id !== rec.id); return [rec, ...rest]; });
+    setTitle(""); setUrl(""); setOpen(false);
+  }
+  async function saveEdit(id) {
+    const patch = { title: eTitle.trim(), subject: eSubject.trim() };
+    await store.updateEbook(id, patch);
+    setList((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    setEditId(null);
+  }
+  async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
+
   if (list === null) return <p className="para">Loading…</p>;
-  if (list.length === 0) return (
-    <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
-      <Mascot size={70} style={{ margin: "0 auto 6px" }} /><div>No textbooks for your class yet.</div>
-    </div>
-  );
   return (
     <>
-      {list.map((e) => (
-        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+      {!open ? (
+        <button className="btnP" onClick={() => setOpen(true)} style={{ width: "100%", justifyContent: "center", marginBottom: 14 }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add a textbook (Drive link)</button>
+      ) : (
+        <div className="card" style={{ padding: 15, marginBottom: 14, borderColor: "var(--azure)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Add a textbook</div>
+            <button className="btnGhost" onClick={() => setOpen(false)}><Icon name="x" size={15} color="#52617A" /></button>
+          </div>
+          {categories.length > 1 && (<><label style={lbl}>Class</label>
+            <select className="input" value={cat} onChange={(e) => setCat(e.target.value)}>{categories.map((c) => <option key={c}>{c}</option>)}</select></>)}
+          {!isSpecial(cat) && (<>
+            <label style={lbl}>Subject</label>
+            {subjects.length > 1
+              ? <select className="input" value={subject} onChange={(e) => setSubject(e.target.value)}>{subjects.map((s) => <option key={s}>{s}</option>)}</select>
+              : <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. English" />}
+          </>)}
+          <label style={lbl}>Title</label>
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. English — Marigold (or 'Grade 3 English books')" />
+          <label style={lbl}>Drive link (a file, or a shared folder)</label>
+          <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://drive.google.com/…" />
+          {err && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>{err}</div>}
+          <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}>Add</button>
+          <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Upload the book to Drive, set it to <b>“Anyone with the link”</b>, and paste the link. Paste a <b>folder</b> link so new books added to that Drive folder appear automatically.</p>
+        </div>
+      )}
+
+      {list.length === 0 ? (
+        <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
+          <Mascot size={70} style={{ margin: "0 auto 6px" }} /><div>No textbooks yet. Add your first one above.</div>
+        </div>
+      ) : list.map((e) => editId === e.id ? (
+        <div key={e.id} className="card" style={{ padding: 12, marginBottom: 8, borderColor: "var(--azure)" }}>
+          <input className="input" value={eTitle} onChange={(ev) => setETitle(ev.target.value)} placeholder="Title" />
+          <input className="input" value={eSubject} onChange={(ev) => setESubject(ev.target.value)} placeholder="Subject" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btnP" onClick={() => saveEdit(e.id)} style={{ flex: 1, justifyContent: "center" }}>Save</button>
+            <button className="btnGhost" onClick={() => setEditId(null)} style={{ padding: "10px 14px" }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
             <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.grade}{e.subject ? " · " + e.subject : ""}</div>
           </div>
-          <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)", padding: "9px 12px" }}><Icon name="globe" size={14} color="#2F6BFF" sw={2.3} /> Open</a>
+          <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnGhost" style={{ padding: 7 }} title="Open"><Icon name="globe" size={14} color="#2F6BFF" /></a>
+          <button className="btnGhost" onClick={() => { setEditId(e.id); setETitle(e.title || ""); setESubject(e.subject || ""); }} style={{ padding: 7 }} title="Rename"><Icon name="edit" size={14} color="#2F6BFF" /></button>
+          <button className="btnGhost" onClick={() => remove(e.id)} style={{ padding: 7 }}><Icon name="trash" size={14} color="#FF6B5E" /></button>
         </div>
       ))}
     </>
@@ -489,7 +557,7 @@ export default function Teacher({ user }) {
       </div>
 
       {tab === "link" && <ClassLinks classes={regular} />}
-      {tab === "books" && <TeacherEbooks grades={[...new Set(regular.map((a) => a.grade))]} />}
+      {tab === "books" && <TeacherEbooks grades={[...new Set(regular.map((a) => a.grade))]} subjects={[...new Set(regular.map((a) => a.subject).filter(Boolean))]} specials={[...new Set(specials.map((a) => a.subject).filter(Boolean))]} />}
       {tab === "work" && <TeacherAssignments grades={[...new Set(regular.map((a) => a.grade))]} subject={regular[0] ? regular[0].subject : (user.subject || "")} />}
 
       {tab === "today" && (

@@ -26,7 +26,6 @@ const TABS = [
   ["profiles", "Profiles", "award"],
   ["notices", "Notices", "newspaper"],
   ["timetable", "Timetable", "calendar"],
-  ["ebooks", "Ebooks", "book"],
   ["photos", "Photos", "spark"],
   ["content", "Content", "info"],
 ];
@@ -48,7 +47,6 @@ export default function Admin() {
       {tab === "profiles" && <TeacherProfiles />}
       {tab === "notices" && <Notices />}
       {tab === "timetable" && <Timetable />}
-      {tab === "ebooks" && <Ebooks />}
       {tab === "photos" && <Photos />}
       {tab === "content" && <SiteContent />}
     </>
@@ -928,6 +926,19 @@ function Ebooks() {
 
   async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
 
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  async function addByLink() {
+    setErr("");
+    if (!linkTitle.trim()) { setErr("Add a title for the link."); return; }
+    if (!/^https?:\/\//i.test(linkUrl.trim())) { setErr("Paste a valid Drive link (https://…)."); return; }
+    const url = linkUrl.trim();
+    const rec = await store.addEbook({ grade, subject: subject.trim(), title: linkTitle.trim(), link: url, openUrl: url, viewUrl: "", downloadUrl: "", fileName: "" });
+    setList((l) => { const rest = (l || []).filter((x) => x.id !== rec.id); return [rec, ...rest]; });
+    setLinkTitle(""); setLinkUrl(""); setProg("Added. It now shows for " + grade + (subject.trim() ? " · " + subject.trim() : "") + ".");
+    setTimeout(() => setProg(""), 5000);
+  }
+
   const [editId, setEditId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editSubject, setEditSubject] = useState("");
@@ -965,9 +976,21 @@ function Ebooks() {
         )}
         {prog && <div style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700, marginTop: 8 }}>{prog}</div>}
         {err && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginTop: 8 }}>{err}</div>}
-        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>
-          Pick <b>one grade + subject</b>, then select <b>all its PDFs at once</b> — or drop the whole <b>.zip</b> and every PDF inside is uploaded. Each file becomes an entry (titled from its filename). Repeat for the next subject. Stored in the KTN Drive.
-        </p>
+        {hasDrive && <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>
+          Pick <b>one grade + subject</b>, then select <b>all its PDFs at once</b> — or drop the whole <b>.zip</b>. (Needs the Drive Apps Script deployed.)
+        </p>}
+
+        <div style={{ borderTop: "1px solid var(--line)", margin: "14px 0 0", paddingTop: 12 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>Or add by Google Drive link (no upload needed)</div>
+          <label style={lbl}>Title</label>
+          <input className="input" placeholder="e.g. English — Marigold, or Grade 3 English books" value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)} />
+          <label style={lbl}>Drive link (a file, or a shared folder)</label>
+          <input className="input" placeholder="https://drive.google.com/…" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+          <button className="btnP" onClick={addByLink} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add link</button>
+          <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>
+            Upload the book(s) to your KTN Drive yourself, set them to <b>“Anyone with the link”</b>, and paste the link here. <b>Tip:</b> paste a <b>folder</b> link once — then any PDF you add to that folder in Drive shows up automatically. Uses the Grade &amp; Subject selected above.
+          </p>
+        </div>
       </div>
 
       {list === null ? <p className="para">Loading…</p> : (list.length === 0 ? (

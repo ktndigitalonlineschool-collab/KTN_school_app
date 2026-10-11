@@ -48,9 +48,10 @@ service cloud.firestore {
       allow write: if isTeacher() || isAdmin();
     }
     // ---- Ebooks (textbooks per grade) ----
+    // Students read; teachers and admins add / edit / delete.
     match /ebooks/{id} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if isTeacher() || isAdmin();
     }
     match /directory/{id} {
       allow read: if true;

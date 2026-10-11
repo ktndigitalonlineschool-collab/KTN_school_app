@@ -51,7 +51,23 @@ export default function Student({ user }) {
       user.grade ? store.listClassLinksByGrade(user.grade) : Promise.resolve({}),
       store.getStudent(user.id).catch(() => null),
       user.grade ? store.listEbooksByGrade(user.grade).catch(() => []) : Promise.resolve([]),
-    ]).then(([m, a, t, n, ag, sb, cl, rec, eb]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setMe(rec); setEbooks(eb || []); setLoading(false); });
+    ]).then(([m, a, t, n, ag, sb, cl, rec, eb]) => {
+      if (!live) return;
+      setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setMe(rec);
+      setEbooks(eb || []); setLoading(false);
+      // Also load textbooks for the student's extra / language classes (e.g. "Tamil Level 1").
+      const extra = Array.isArray(rec && rec.extra) ? rec.extra : (Array.isArray(user.extra) ? user.extra : []);
+      if (extra.length) {
+        Promise.all(extra.map((c) => store.listEbooksByGrade(c).catch(() => []))).then((res) => {
+          if (!live) return;
+          setEbooks((cur) => {
+            const seen = new Set(cur.map((x) => x.id));
+            const add = res.flat().filter((x) => x && !seen.has(x.id));
+            return [...cur, ...add];
+          });
+        });
+      }
+    });
     return () => { live = false; };
   }, [user.id, user.grade]);
 
@@ -327,7 +343,7 @@ export default function Student({ user }) {
             <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
-              <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.subject || "General"}</div>
+              <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.subject || e.grade || "General"}</div>
             </div>
             <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)", padding: "9px 12px" }}><Icon name="globe" size={14} color="#2F6BFF" sw={2.3} /> Open</a>
           </div>
