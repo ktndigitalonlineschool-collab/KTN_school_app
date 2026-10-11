@@ -413,6 +413,34 @@ function ClassLinks({ classes }) {
   );
 }
 
+/* ---------------- Teacher Ebooks (read-only) ---------------- */
+function TeacherEbooks({ grades }) {
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    Promise.all(grades.map((g) => store.listEbooksByGrade(g))).then((res) => setList(res.flat()));
+  }, []);
+  if (list === null) return <p className="para">Loading…</p>;
+  if (list.length === 0) return (
+    <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
+      <Mascot size={70} style={{ margin: "0 auto 6px" }} /><div>No textbooks for your class yet.</div>
+    </div>
+  );
+  return (
+    <>
+      {list.map((e) => (
+        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
+            <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.grade}{e.subject ? " · " + e.subject : ""}</div>
+          </div>
+          <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)", padding: "9px 12px" }}><Icon name="globe" size={14} color="#2F6BFF" sw={2.3} /> Open</a>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /* ---------------- Teacher shell ---------------- */
 export default function Teacher({ user }) {
   const [tab, setTab] = useState("today");
@@ -432,7 +460,7 @@ export default function Teacher({ user }) {
     </div>;
   }
 
-  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["link", "Class link", "globe"]];
+  const TABS = [["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["books", "Books", "book"], ["link", "Class link", "globe"]];
   const norm = (s) => (s || "").toLowerCase().replace(/[^a-z]/g, "");
   const match = TEACHERS.find((t) => norm(t.name) === norm(user.name));
   const photo = (user.photo) || (match && match.photo) || "";
@@ -461,6 +489,7 @@ export default function Teacher({ user }) {
       </div>
 
       {tab === "link" && <ClassLinks classes={regular} />}
+      {tab === "books" && <TeacherEbooks grades={[...new Set(regular.map((a) => a.grade))]} />}
       {tab === "work" && <TeacherAssignments grades={[...new Set(regular.map((a) => a.grade))]} subject={regular[0] ? regular[0].subject : (user.subject || "")} />}
 
       {tab === "today" && (

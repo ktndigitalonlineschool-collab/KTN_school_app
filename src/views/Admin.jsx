@@ -10,10 +10,10 @@ import logo from "../assets/logo.png";
 import { TT, DAYCOL, ROTATING, TEACH as TEACH_DEF, PRESS as PRESS_DEF, FOUNDERS as FOUNDERS_DEF, LEADER_MESSAGE as LEADER_DEF, MILESTONES as MILESTONES_DEF } from "../data/content";
 import { TEACHERS as BUILTIN_TEACHERS } from "../data/teachers";
 import { ROSTER, ROSTER_MAX_ROLL } from "../data/roster";
-import { fmtDate, normRoll } from "../lib/util";
+import { fmtDate, normRoll, academicYear } from "../lib/util";
+import { hasDrive, uploadToDrive, sendWelcomeMail } from "../lib/drive";
 import { hasFirebase } from "../lib/firebase";
 import { createStudentAccount, createTeacherAccount, resetPassword } from "../lib/auth";
-import { sendWelcomeMail } from "../lib/drive";
 import { reportCardDoc } from "../lib/marksheet";
 import * as store from "../lib/store";
 
@@ -26,6 +26,7 @@ const TABS = [
   ["profiles", "Profiles", "award"],
   ["notices", "Notices", "newspaper"],
   ["timetable", "Timetable", "calendar"],
+  ["ebooks", "Ebooks", "book"],
   ["photos", "Photos", "spark"],
   ["content", "Content", "info"],
 ];
@@ -47,6 +48,7 @@ export default function Admin() {
       {tab === "profiles" && <TeacherProfiles />}
       {tab === "notices" && <Notices />}
       {tab === "timetable" && <Timetable />}
+      {tab === "ebooks" && <Ebooks />}
       {tab === "photos" && <Photos />}
       {tab === "content" && <SiteContent />}
     </>
@@ -868,6 +870,90 @@ function Row({ subject, teacher, day, time, link, onEdit, onRemove }) {
 }
 
 /* ---------- Photos ---------- */
+/* ---------- Ebooks (textbooks per grade) ---------- */
+function Ebooks() {
+  const lbl = { fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" };
+  const [list, setList] = useState(null);
+  const [form, setForm] = useState({ grade: GRADES[0], subject: "", title: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "" });
+  const [up, setUp] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => { store.listEbooks().then(setList); }, []);
+
+  async function onFile(e) {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    setErr(""); setUp(true);
+    try {
+      const folder = [academicYear(), form.grade, "Ebooks"].join("/");
+      const r = await uploadToDrive(folder, f);
+      setForm((s) => ({ ...s, link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name, title: s.title || f.name.replace(/\.[^.]+$/, "") }));
+    } catch (e2) { setErr(e2.message || "Upload failed"); }
+    finally { setUp(false); }
+  }
+  async function add() {
+    setErr("");
+    if (!form.title.trim()) { setErr("Add a title."); return; }
+    if (!form.link.trim()) { setErr(hasDrive ? "Upload the ebook file first." : "Paste the ebook link."); return; }
+    const rec = await store.addEbook({ grade: form.grade, subject: form.subject.trim(), title: form.title.trim(), link: form.link.trim(), viewUrl: form.viewUrl, openUrl: form.openUrl, downloadUrl: form.downloadUrl, fileName: form.fileName });
+    setList((l) => [rec, ...(l || [])]);
+    setForm({ grade: form.grade, subject: "", title: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "" });
+  }
+  async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
+
+  const byGrade = {};
+  (list || []).forEach((e) => { (byGrade[e.grade] = byGrade[e.grade] || []).push(e); });
+
+  return (
+    <>
+      <div className="card" style={{ padding: 15, marginBottom: 16, borderColor: "var(--azure)" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Add a textbook (NCERT / CBSE ebook)</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Grade</label>
+            <select className="input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>{GRADES.map((g) => <option key={g}>{g}</option>)}</select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Subject (optional)</label>
+            <input className="input" placeholder="e.g. Maths" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
+          </div>
+        </div>
+        <label style={lbl}>Title</label>
+        <input className="input" placeholder="e.g. Mathematics — Math Magic" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+        {hasDrive ? (
+          <label className="btnP" style={{ width: "100%", justifyContent: "center", background: form.fileName ? "#1E9E5A" : "var(--tintBlue)", color: form.fileName ? "#fff" : "var(--azure)", cursor: "pointer", marginBottom: 10 }}>
+            <Icon name={form.fileName ? "check" : "plus"} size={15} color={form.fileName ? "#fff" : "#2F6BFF"} sw={2.4} />
+            {up ? "Uploading…" : form.fileName ? `Uploaded: ${form.fileName}` : "Upload ebook (PDF to KTN Drive)"}
+            <input type="file" accept="application/pdf,.pdf,.epub" onChange={onFile} style={{ display: "none" }} />
+          </label>
+        ) : (
+          <><label style={lbl}>Ebook link</label><input className="input" placeholder="Google Drive / any link" value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} /></>
+        )}
+        {err && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>{err}</div>}
+        <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add ebook</button>
+        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Ebooks are stored in the KTN Google Drive. Teachers and students of that grade can open or download them.</p>
+      </div>
+
+      {list === null ? <p className="para">Loading…</p> : (list.length === 0 ? (
+        <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>No ebooks yet.</div>
+      ) : GRADES.filter((g) => byGrade[g]).map((g) => (
+        <div key={g} style={{ marginBottom: 14 }}>
+          <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, fontSize: 13, color: "var(--azure)", margin: "4px 2px 8px" }}>{g}</div>
+          {byGrade[g].map((e) => (
+            <div key={e.id} className="card" style={{ padding: "11px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={18} color="#2F6BFF" sw={2.2} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{e.title}</div>
+                <div style={{ fontSize: 11.5, color: "var(--inkSoft)" }}>{e.subject || "General"}</div>
+              </div>
+              {(e.openUrl || e.link) && <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnGhost" style={{ padding: 7 }} title="Open"><Icon name="globe" size={14} color="#2F6BFF" /></a>}
+              <button className="btnGhost" onClick={() => remove(e.id)} style={{ padding: 7 }}><Icon name="trash" size={14} color="#FF6B5E" /></button>
+            </div>
+          ))}
+        </div>
+      )))}
+    </>
+  );
+}
+
 function Photos() {
   const [list, setList] = useState(null);
   const [form, setForm] = useState({ src: "", cap: "" });

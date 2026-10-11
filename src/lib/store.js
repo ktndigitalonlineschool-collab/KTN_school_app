@@ -652,3 +652,26 @@ export async function listClassLinksByGrade(grade) {
   }
   return map;
 }
+
+/* ============ EBOOKS (NCERT/CBSE textbooks per grade) ============ */
+/* Files live in Google Drive; we store only a link record (grade, title, subject, url). */
+export async function addEbook(data) {
+  const rec = { ...data, createdAt: new Date().toISOString() };
+  if (hasFirebase) { const ref = await addDoc(collection(db, "ebooks"), rec); return { id: ref.id, ...rec }; }
+  const list = lsGet("ktn_ebooks", []); const r = { id: "eb" + Date.now(), ...rec }; lsSet("ktn_ebooks", [r, ...list]); return r;
+}
+export async function removeEbook(id) {
+  if (hasFirebase) { await deleteDoc(doc(db, "ebooks", id)); return; }
+  lsSet("ktn_ebooks", lsGet("ktn_ebooks", []).filter((e) => e.id !== id));
+}
+export async function listEbooks() {
+  if (hasFirebase) {
+    const snap = await getDocs(collection(db, "ebooks"));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+  return lsGet("ktn_ebooks", []);
+}
+export async function listEbooksByGrade(grade) {
+  const all = await listEbooks();
+  return all.filter((e) => e.grade === grade).sort((a, b) => (a.subject || "").localeCompare(b.subject || ""));
+}

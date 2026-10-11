@@ -7,7 +7,7 @@ import { reportCardDoc } from "../lib/marksheet";
 import { hasDrive, uploadToDrive } from "../lib/drive";
 import { TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX, SUBJECTS_BY_GRADE } from "../data/school";
 import logo from "../assets/logo.png";
-import { fmtDate, classCancelledToday, normRoll, driveFolderPath } from "../lib/util";
+import { fmtDate, classCancelledToday, normRoll, driveFolderPath, addClassToCalendar } from "../lib/util";
 import * as store from "../lib/store";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -34,6 +34,7 @@ export default function Student({ user }) {
   const [cls, setCls] = useState({});
   const [me, setMe] = useState(null);
   const [tab, setTab] = useState("today");
+  const [ebooks, setEbooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewer, setViewer] = useState(null);
   const [upId, setUpId] = useState(null);
@@ -49,7 +50,8 @@ export default function Student({ user }) {
       store.getStudentSubmissions(user.id),
       user.grade ? store.listClassLinksByGrade(user.grade) : Promise.resolve({}),
       store.getStudent(user.id).catch(() => null),
-    ]).then(([m, a, t, n, ag, sb, cl, rec]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setMe(rec); setLoading(false); });
+      user.grade ? store.listEbooksByGrade(user.grade).catch(() => []) : Promise.resolve([]),
+    ]).then(([m, a, t, n, ag, sb, cl, rec, eb]) => { if (!live) return; setMarks(m); setAtt(a); setTt(t); setNews(n); setAsg(ag); setSubs(sb); setCls(cl); setMe(rec); setEbooks(eb || []); setLoading(false); });
     return () => { live = false; };
   }, [user.id, user.grade]);
 
@@ -134,7 +136,7 @@ export default function Student({ user }) {
 
       {/* TABS */}
       <div style={{ display: "flex", gap: 8, margin: "16px 0", flexWrap: "wrap" }}>
-        {[["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["profile", "Profile", "cap"]].map(([k, label, ic]) => (
+        {[["today", "Today", "home"], ["attendance", "Attendance", "check"], ["marks", "Marks", "award"], ["work", "Work", "book"], ["books", "Books", "book"], ["profile", "Profile", "cap"]].map(([k, label, ic]) => (
           <button key={k} className="btnP" onClick={() => setTab(k)} style={{ background: tab === k ? "var(--azure)" : "#fff", color: tab === k ? "#fff" : "var(--inkSoft)", border: "1px solid " + (tab === k ? "var(--azure)" : "var(--line)") }}>
             <Icon name={ic} size={15} color={tab === k ? "#fff" : "#52617A"} sw={2.4} /> {label}
           </button>
@@ -176,8 +178,11 @@ export default function Student({ user }) {
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <a href={link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}><Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class</a>
                 <button className="btnGhost" onClick={() => { try { navigator.clipboard.writeText(link); } catch (e) {} }} title="Copy link" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="copy" size={15} color="#2F6BFF" /></button>
+                <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link })} title="Add to phone calendar (reminds 15 min before)" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="calendar" size={15} color="#2F6BFF" /></button>
               </div>
-            ) : null}
+            ) : (
+              <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link: "" })} style={{ marginTop: 10, color: "var(--azure)", fontWeight: 600, fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="calendar" size={14} color="#2F6BFF" /> Add to calendar (reminds 15 min before)</button>
+            )}
           </div>
         );
       })}
@@ -308,6 +313,25 @@ export default function Student({ user }) {
           <p className="para" style={{ margin: 0, fontSize: 13 }}>{pinned.body}</p>
         </div>
       </>)}
+      </>)}
+
+      {tab === "books" && (<>
+        <h3 className="h2" style={{ margin: "4px 0 10px" }}>Textbooks</h3>
+        {ebooks.length === 0 ? (
+          <div className="card" style={{ padding: 20, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
+            <Mascot size={70} style={{ margin: "0 auto 6px" }} />
+            <div>No textbooks added yet.</div>
+          </div>
+        ) : ebooks.map((e) => (
+          <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
+              <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.subject || "General"}</div>
+            </div>
+            <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)", padding: "9px 12px" }}><Icon name="globe" size={14} color="#2F6BFF" sw={2.3} /> Open</a>
+          </div>
+        ))}
       </>)}
 
       {tab === "profile" && (<>
