@@ -874,30 +874,57 @@ function Row({ subject, teacher, day, time, link, onEdit, onRemove }) {
 function Ebooks() {
   const lbl = { fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "2px 0 6px" };
   const [list, setList] = useState(null);
-  const [form, setForm] = useState({ grade: GRADES[0], subject: "", title: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "" });
-  const [up, setUp] = useState(false);
+  const [grade, setGrade] = useState(GRADES[0]);
+  const [subject, setSubject] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [prog, setProg] = useState("");
   const [err, setErr] = useState("");
   useEffect(() => { store.listEbooks().then(setList); }, []);
 
-  async function onFile(e) {
-    const f = e.target.files && e.target.files[0]; if (!f) return;
-    setErr(""); setUp(true);
-    try {
-      const folder = [academicYear(), form.grade, "Ebooks"].join("/");
-      const r = await uploadToDrive(folder, f);
-      setForm((s) => ({ ...s, link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name, title: s.title || f.name.replace(/\.[^.]+$/, "") }));
-    } catch (e2) { setErr(e2.message || "Upload failed"); }
-    finally { setUp(false); }
-  }
-  async function add() {
+  const clean = (name) => name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+
+  async function uploadMany(files) {
     setErr("");
-    if (!form.title.trim()) { setErr("Add a title."); return; }
-    if (!form.link.trim()) { setErr(hasDrive ? "Upload the ebook file first." : "Paste the ebook link."); return; }
-    const rec = await store.addEbook({ grade: form.grade, subject: form.subject.trim(), title: form.title.trim(), link: form.link.trim(), viewUrl: form.viewUrl, openUrl: form.openUrl, downloadUrl: form.downloadUrl, fileName: form.fileName });
-    setList((l) => [rec, ...(l || [])]);
-    setForm({ grade: form.grade, subject: "", title: "", link: "", viewUrl: "", openUrl: "", downloadUrl: "", fileName: "" });
+    if (!subject.trim()) { setErr("Enter the subject first (e.g. English)."); return; }
+    if (!files.length) { setErr("No PDF files found."); return; }
+    setBusy(true);
+    const folder = [academicYear(), grade, subject.trim(), "Ebooks"].join("/");
+    const added = [];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setProg(`Uploading ${i + 1} of ${files.length}: ${files[i].name}`);
+        const r = await uploadToDrive(folder, files[i]);
+        const rec = await store.addEbook({ grade, subject: subject.trim(), title: clean(files[i].name), link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name });
+        added.push(rec);
+        setList((l) => [rec, ...(l || [])]);
+      }
+      setProg(`Done — added ${added.length} ebook${added.length === 1 ? "" : "s"} to ${grade} · ${subject.trim()}.`);
+      setSubject("");
+    } catch (e2) { setErr(e2.message || "Upload failed"); setProg(""); }
+    finally { setBusy(false); setTimeout(() => setProg(""), 6000); }
   }
-  async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
+
+  async function onPick(e) {
+    const picked = Array.from(e.target.files || []); e.target.value = "";
+    if (!picked.length) return;
+    // A single .zip -> unzip and upload every PDF inside
+    if (picked.length === 1 && /\.zip$/i.test(picked[0].name)) {
+      setErr(""); setBusy(true); setProg("Reading zip…");
+      try {
+        const JSZip = (await import("jszip")).default;
+        const zip = await JSZip.loadAsync(picked[0]);
+        const entries = Object.values(zip.files).filter((f) => !f.dir && /\.pdf$/i.test(f.name));
+        const files = [];
+        for (const ent of entries) {
+          const blob = await ent.async("blob");
+          files.push(new File([blob], ent.name.split("/").pop(), { type: "application/pdf" }));
+        }
+        await uploadMany(files);
+      } catch (e2) { setErr(e2.message || "Could not read the zip."); setBusy(false); setProg(""); }
+      return;
+    }
+    await uploadMany(picked.filter((f) => /\.pdf$/i.test(f.name)));
+  }
 
   const byGrade = {};
   (list || []).forEach((e) => { (byGrade[e.grade] = byGrade[e.grade] || []).push(e); });
@@ -905,31 +932,30 @@ function Ebooks() {
   return (
     <>
       <div className="card" style={{ padding: 15, marginBottom: 16, borderColor: "var(--azure)" }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Add a textbook (NCERT / CBSE ebook)</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 10 }}>Add textbooks (NCERT / CBSE ebooks)</div>
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={lbl}>Grade</label>
-            <select className="input" value={form.grade} onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}>{GRADES.map((g) => <option key={g}>{g}</option>)}</select>
+            <select className="input" value={grade} onChange={(e) => setGrade(e.target.value)}>{GRADES.map((g) => <option key={g}>{g}</option>)}</select>
           </div>
           <div style={{ flex: 1 }}>
-            <label style={lbl}>Subject (optional)</label>
-            <input className="input" placeholder="e.g. Maths" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
+            <label style={lbl}>Subject</label>
+            <input className="input" placeholder="e.g. English" value={subject} onChange={(e) => setSubject(e.target.value)} />
           </div>
         </div>
-        <label style={lbl}>Title</label>
-        <input className="input" placeholder="e.g. Mathematics — Math Magic" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
         {hasDrive ? (
-          <label className="btnP" style={{ width: "100%", justifyContent: "center", background: form.fileName ? "#1E9E5A" : "var(--tintBlue)", color: form.fileName ? "#fff" : "var(--azure)", cursor: "pointer", marginBottom: 10 }}>
-            <Icon name={form.fileName ? "check" : "plus"} size={15} color={form.fileName ? "#fff" : "#2F6BFF"} sw={2.4} />
-            {up ? "Uploading…" : form.fileName ? `Uploaded: ${form.fileName}` : "Upload ebook (PDF to KTN Drive)"}
-            <input type="file" accept="application/pdf,.pdf,.epub" onChange={onFile} style={{ display: "none" }} />
+          <label className="btnP" style={{ width: "100%", justifyContent: "center", background: busy ? "#9AA7BE" : "var(--azure)", cursor: busy ? "default" : "pointer", marginTop: 4 }}>
+            <Icon name="plus" size={15} color="#fff" sw={2.5} /> {busy ? "Uploading…" : "Upload PDFs or a .zip (many at once)"}
+            <input type="file" accept="application/pdf,.pdf,.zip" multiple disabled={busy} onChange={onPick} style={{ display: "none" }} />
           </label>
         ) : (
-          <><label style={lbl}>Ebook link</label><input className="input" placeholder="Google Drive / any link" value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} /></>
+          <div style={{ fontSize: 12.5, color: "#8A5A12", background: "var(--tintAmber)", borderRadius: 10, padding: 10 }}>Connect Google Drive (Apps Script) to upload ebooks. See DRIVE-SETUP.md.</div>
         )}
-        {err && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>{err}</div>}
-        <button className="btnP" onClick={add} style={{ width: "100%", justifyContent: "center" }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add ebook</button>
-        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>Ebooks are stored in the KTN Google Drive. Teachers and students of that grade can open or download them.</p>
+        {prog && <div style={{ fontSize: 12.5, color: "#1E7A45", fontWeight: 700, marginTop: 8 }}>{prog}</div>}
+        {err && <div style={{ color: "#FF6B5E", fontSize: 12.5, fontWeight: 600, marginTop: 8 }}>{err}</div>}
+        <p style={{ fontSize: 11.5, color: "var(--inkSoft)", margin: "10px 2px 0" }}>
+          Pick <b>one grade + subject</b>, then select <b>all its PDFs at once</b> — or drop the whole <b>.zip</b> and every PDF inside is uploaded. Each file becomes an entry (titled from its filename). Repeat for the next subject. Stored in the KTN Drive.
+        </p>
       </div>
 
       {list === null ? <p className="para">Loading…</p> : (list.length === 0 ? (
