@@ -42,6 +42,35 @@ export async function uploadToDrive(folder, file, nameOverride) {
   return { fileId: id, name: json.name || name, viewUrl, openUrl, downloadUrl };
 }
 
+// Reads the whole "KTN Books" Drive tree via the Apps Script backend and
+// returns ebook-shaped records. Grade folders -> {grade, subject}; language /
+// special folders -> {grade: "<Category> <Level>"} to match the class labels.
+// Throws a clear error if the script isn't reachable so the caller can fall back.
+export async function listDriveBooks(root) {
+  if (!hasDrive) return [];
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "list", token: TOKEN, root: root || "KTN Books" }),
+  });
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch (e) { throw new Error("Drive listing failed: the Apps Script returned a web page, not data. Re-deploy it (Deploy → Manage deployments → Edit → New version, access \"Anyone\")."); }
+  if (!json.ok) throw new Error(json.error || "Drive listing failed");
+  return (json.books || []).map((b) => {
+    const isGrade = /^grade\b/i.test(String(b.category || ""));
+    const grade = isGrade ? b.category : (b.sub ? `${b.category} ${b.sub}` : b.category);
+    const subject = isGrade ? (b.sub || "") : "";
+    const open = b.openUrl || (b.fileId ? `https://drive.google.com/file/d/${b.fileId}/view` : "");
+    return {
+      id: "drive:" + (b.fileId || b.title), grade, subject, title: b.title || "Untitled",
+      link: open, openUrl: open, viewUrl: b.viewUrl || "", downloadUrl: b.downloadUrl || open,
+      fromDrive: true,
+    };
+  });
+}
+
 // Sends a short notification email to the school via the Apps Script backend.
 // Best-effort: never blocks or breaks the form submission if it fails.
 export async function notifySchool(subject, body) {

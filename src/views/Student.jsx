@@ -4,7 +4,7 @@ import Mascot from "../components/Mascot.jsx";
 import FileViewer from "../components/FileViewer.jsx";
 import StudentProfile from "../components/StudentProfile.jsx";
 import { reportCardDoc } from "../lib/marksheet";
-import { hasDrive, uploadToDrive } from "../lib/drive";
+import { hasDrive, uploadToDrive, listDriveBooks } from "../lib/drive";
 import { TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX, SUBJECTS_BY_GRADE } from "../data/school";
 import logo from "../assets/logo.png";
 import { fmtDate, classCancelledToday, normRoll, driveFolderPath, addClassToCalendar } from "../lib/util";
@@ -57,15 +57,21 @@ export default function Student({ user }) {
       setEbooks(eb || []); setLoading(false);
       // Also load textbooks for the student's extra / language classes (e.g. "Tamil Level 1").
       const extra = Array.isArray(rec && rec.extra) ? rec.extra : (Array.isArray(user.extra) ? user.extra : []);
+      const mine = [user.grade, ...extra].filter(Boolean);
+      const mergeIn = (items) => setEbooks((cur) => {
+        const seen = new Set(cur.map((x) => x.id));
+        return [...cur, ...items.filter((x) => x && !seen.has(x.id))];
+      });
       if (extra.length) {
         Promise.all(extra.map((c) => store.listEbooksByGrade(c).catch(() => []))).then((res) => {
-          if (!live) return;
-          setEbooks((cur) => {
-            const seen = new Set(cur.map((x) => x.id));
-            const add = res.flat().filter((x) => x && !seen.has(x.id));
-            return [...cur, ...add];
-          });
+          if (live) mergeIn(res.flat());
         });
+      }
+      // Auto-list books straight from the school's Drive (for grade + extra classes).
+      if (hasDrive) {
+        listDriveBooks()
+          .then((books) => { if (live) mergeIn(books.filter((b) => mine.includes(b.grade))); })
+          .catch(() => {});
       }
     });
     return () => { live = false; };

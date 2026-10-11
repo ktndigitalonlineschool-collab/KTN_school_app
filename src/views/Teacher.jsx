@@ -4,7 +4,7 @@ import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
 import { fmtDate, classCancelledToday, driveFolderPath } from "../lib/util";
-import { hasDrive, uploadToDrive } from "../lib/drive";
+import { hasDrive, uploadToDrive, listDriveBooks } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
 import { TEACHERS } from "../data/teachers";
 import * as store from "../lib/store";
@@ -419,7 +419,9 @@ function TeacherEbooks({ grades, subjects, specials = [] }) {
   // Categories a teacher can add books for: each regular grade, plus each special/extra class.
   const categories = [...grades, ...specials];
   const isSpecial = (c) => specials.includes(c);
-  const [list, setList] = useState(null);
+  const [list, setList] = useState(null);     // manually-added (Firestore) books
+  const [drive, setDrive] = useState([]);      // auto-listed from Drive
+  const [driveErr, setDriveErr] = useState("");
   const [cat, setCat] = useState(categories[0] || "");
   const [subject, setSubject] = useState(subjects[0] || "");
   const [title, setTitle] = useState("");
@@ -429,8 +431,14 @@ function TeacherEbooks({ grades, subjects, specials = [] }) {
   const [editId, setEditId] = useState(null);
   const [eTitle, setETitle] = useState("");
   const [eSubject, setESubject] = useState("");
+  const inScope = (g) => categories.includes(g);
   useEffect(() => {
     Promise.all(categories.map((c) => store.listEbooksByGrade(c))).then((res) => setList(res.flat()));
+    if (hasDrive) {
+      listDriveBooks()
+        .then((books) => setDrive(books.filter((b) => inScope(b.grade))))
+        .catch((e) => setDriveErr(e.message || "Couldn't read the Drive books folder."));
+    }
   }, []);
 
   async function add() {
@@ -452,10 +460,21 @@ function TeacherEbooks({ grades, subjects, specials = [] }) {
   async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
 
   if (list === null) return <p className="para">Loading…</p>;
+  const all = [...drive, ...list];
   return (
     <>
+      {hasDrive && (
+        <div className="card" style={{ padding: "11px 14px", marginBottom: 12, background: "#EAF1FF", border: "none", fontSize: 12.5, color: "#1B327E" }}>
+          <b>Automatic:</b> books load straight from the school's Drive. Just drop PDFs into <b>KTN Books / {grades[0] || "Grade"} / {subjects[0] || "Subject"}</b> and they appear here — nothing to paste.
+        </div>
+      )}
+      {driveErr && (
+        <div className="card" style={{ padding: "11px 14px", marginBottom: 12, background: "#FFF3F1", border: "1px solid #F6D4CF", fontSize: 12.5, color: "#A5342A" }}>
+          Couldn’t read the Drive books folder. {driveErr} You can still add a link manually below.
+        </div>
+      )}
       {!open ? (
-        <button className="btnP" onClick={() => setOpen(true)} style={{ width: "100%", justifyContent: "center", marginBottom: 14 }}><Icon name="plus" size={15} color="#fff" sw={2.5} /> Add a textbook (Drive link)</button>
+        <button className="btnGhost" onClick={() => setOpen(true)} style={{ width: "100%", justifyContent: "center", marginBottom: 14, border: "1px dashed var(--line)", color: "var(--inkSoft)", padding: "10px 0" }}><Icon name="plus" size={14} color="#52617A" sw={2.3} /> Add a one-off link (optional)</button>
       ) : (
         <div className="card" style={{ padding: 15, marginBottom: 14, borderColor: "var(--azure)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -480,11 +499,21 @@ function TeacherEbooks({ grades, subjects, specials = [] }) {
         </div>
       )}
 
-      {list.length === 0 ? (
+      {all.length === 0 ? (
         <div className="card" style={{ padding: 22, textAlign: "center", color: "var(--inkSoft)", fontSize: 14 }}>
-          <Mascot size={70} style={{ margin: "0 auto 6px" }} /><div>No textbooks yet. Add your first one above.</div>
+          <Mascot size={70} style={{ margin: "0 auto 6px" }} />
+          <div>{hasDrive ? "No books found in Drive yet. Add PDFs to your class folder in KTN Books." : "No textbooks yet. Add your first one above."}</div>
         </div>
-      ) : list.map((e) => editId === e.id ? (
+      ) : all.map((e) => e.fromDrive ? (
+        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
+            <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.grade}{e.subject ? " · " + e.subject : ""} · Drive</div>
+          </div>
+          <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnGhost" style={{ padding: 7 }} title="Open"><Icon name="globe" size={14} color="#2F6BFF" /></a>
+        </div>
+      ) : editId === e.id ? (
         <div key={e.id} className="card" style={{ padding: 12, marginBottom: 8, borderColor: "var(--azure)" }}>
           <input className="input" value={eTitle} onChange={(ev) => setETitle(ev.target.value)} placeholder="Title" />
           <input className="input" value={eSubject} onChange={(ev) => setESubject(ev.target.value)} placeholder="Subject" />

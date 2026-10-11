@@ -42,6 +42,28 @@ function doPost(e) {
         downloadUrl: "https://drive.google.com/uc?export=download&id=" + id
       });
     }
+    if (req.action === "list") {
+      // Walk "KTN Books" (or req.root) two levels deep and return every file.
+      //   <root>/<Category>/<Subject-or-Level>/<file>
+      //   <root>/<Category>/<file>            (also included)
+      // Category = "Grade 4", "Tamil", "Korean", ...
+      var rootName = req.root || "KTN Books";
+      var root = findFolderByName(rootName);
+      if (!root) return json({ ok: true, books: [] });
+      var books = [];
+      var cats = root.getFolders();
+      while (cats.hasNext()) {
+        var cat = cats.next();
+        var catName = cat.getName();
+        collectFiles(cat, catName, "", books);          // files directly in the category
+        var subs = cat.getFolders();
+        while (subs.hasNext()) {
+          var sub = subs.next();
+          collectFiles(sub, catName, sub.getName(), books); // files in subject / level
+        }
+      }
+      return json({ ok: true, books: books });
+    }
     if (req.action === "notify") {
       var to = req.to || NOTIFY_EMAIL;
       var subject = req.subject || "KTN website notification";
@@ -58,6 +80,23 @@ function doPost(e) {
 
 var NOTIFY_EMAIL = "ktndigitalonlineschool@gmail.com"; // where alerts are sent
 
+function findFolderByName(name) {
+  var it = DriveApp.getFoldersByName(name);
+  return it.hasNext() ? it.next() : null;
+}
+function collectFiles(folder, cat, sub, out) {
+  var files = folder.getFiles();
+  while (files.hasNext()) {
+    var f = files.next();
+    var id = f.getId();
+    out.push({
+      category: cat, sub: sub, title: f.getName(), fileId: id,
+      openUrl: "https://drive.google.com/file/d/" + id + "/view",
+      viewUrl: "https://drive.google.com/file/d/" + id + "/preview",
+      downloadUrl: "https://drive.google.com/uc?export=download&id=" + id
+    });
+  }
+}
 function getFolderByPath(path) {
   var parent = getOrCreate(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
   String(path).split("/").filter(function (s) { return s; }).forEach(function (seg) {
