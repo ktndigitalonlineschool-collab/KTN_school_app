@@ -894,7 +894,7 @@ function Ebooks() {
       for (let i = 0; i < files.length; i++) {
         setProg(`Uploading ${i + 1} of ${files.length}: ${files[i].name}`);
         const r = await uploadToDrive(folder, files[i]);
-        const rec = await store.addEbook({ grade, subject: subject.trim(), title: clean(files[i].name), link: r.downloadUrl, viewUrl: r.viewUrl, openUrl: r.openUrl, downloadUrl: r.downloadUrl, fileName: r.name });
+        const rec = await store.addEbook({ grade, subject: subject.trim(), title: clean(files[i].name), link: r.downloadUrl || r.openUrl || "", viewUrl: r.viewUrl || "", openUrl: r.openUrl || "", downloadUrl: r.downloadUrl || "", fileName: r.name || files[i].name });
         added.push(rec);
         setList((l) => [rec, ...(l || [])]);
       }

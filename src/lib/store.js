@@ -656,7 +656,8 @@ export async function listClassLinksByGrade(grade) {
 /* ============ EBOOKS (NCERT/CBSE textbooks per grade) ============ */
 /* Files live in Google Drive; we store only a link record (grade, title, subject, url). */
 export async function addEbook(data) {
-  const rec = { ...data, createdAt: new Date().toISOString() };
+  const clean = {}; Object.keys(data || {}).forEach((k) => { clean[k] = data[k] == null ? "" : data[k]; });
+  const rec = { ...clean, createdAt: new Date().toISOString() };
   if (hasFirebase) { const ref = await addDoc(collection(db, "ebooks"), rec); return { id: ref.id, ...rec }; }
   const list = lsGet("ktn_ebooks", []); const r = { id: "eb" + Date.now(), ...rec }; lsSet("ktn_ebooks", [r, ...list]); return r;
 }

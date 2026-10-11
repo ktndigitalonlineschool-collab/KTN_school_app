@@ -30,7 +30,13 @@ export async function uploadToDrive(folder, file, nameOverride) {
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || "Upload failed");
-  return json;
+  // Fill any missing URL fields from the file id (older script versions may
+  // return fewer fields). Never return undefined — Firestore rejects it.
+  const id = json.fileId || json.id || "";
+  const viewUrl = json.viewUrl || (id ? `https://drive.google.com/file/d/${id}/preview` : "");
+  const openUrl = json.openUrl || json.url || (id ? `https://drive.google.com/file/d/${id}/view` : "");
+  const downloadUrl = json.downloadUrl || (id ? `https://drive.google.com/uc?export=download&id=${id}` : openUrl);
+  return { fileId: id, name: json.name || name, viewUrl, openUrl, downloadUrl };
 }
 
 // Sends a short notification email to the school via the Apps Script backend.
