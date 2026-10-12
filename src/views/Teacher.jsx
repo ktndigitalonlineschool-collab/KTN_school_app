@@ -414,11 +414,18 @@ function ClassLinks({ classes }) {
 }
 
 /* ---------------- Teacher Ebooks (read-only) ---------------- */
-function TeacherEbooks({ grades, subjects, specials = [] }) {
+function TeacherEbooks({ classes = [], specials = [] }) {
   const lbl = { fontSize: 12, fontWeight: 700, color: "var(--ink)", display: "block", margin: "6px 0 6px" };
+  // classes = [{ grade, subject }] the teacher actually teaches.
+  const grades = [...new Set(classes.map((c) => c.grade).filter(Boolean))];
+  const subjects = [...new Set(classes.map((c) => c.subject).filter(Boolean))];
   // Categories a teacher can add books for: each regular grade, plus each special/extra class.
   const categories = [...grades, ...specials];
   const isSpecial = (c) => specials.includes(c);
+  // A Drive book is in scope if it's one of the teacher's special classes, or it
+  // matches a grade+subject this teacher teaches (books with no subject show too).
+  const inScope = (b) => specials.includes(b.grade)
+    || classes.some((c) => c.grade === b.grade && (!b.subject || b.subject === c.subject));
   const [list, setList] = useState(null);     // manually-added (Firestore) books
   const [drive, setDrive] = useState([]);      // auto-listed from Drive
   const [driveErr, setDriveErr] = useState("");
@@ -431,12 +438,11 @@ function TeacherEbooks({ grades, subjects, specials = [] }) {
   const [editId, setEditId] = useState(null);
   const [eTitle, setETitle] = useState("");
   const [eSubject, setESubject] = useState("");
-  const inScope = (g) => categories.includes(g);
   useEffect(() => {
-    Promise.all(categories.map((c) => store.listEbooksByGrade(c))).then((res) => setList(res.flat()));
+    Promise.all(categories.map((c) => store.listEbooksByGrade(c))).then((res) => setList(res.flat().filter(inScope)));
     if (hasDrive) {
       listDriveBooks()
-        .then((books) => setDrive(books.filter((b) => inScope(b.grade))))
+        .then((books) => setDrive(books.filter(inScope)))
         .catch((e) => setDriveErr(e.message || "Couldn't read the Drive books folder."));
     }
   }, []);
@@ -586,7 +592,7 @@ export default function Teacher({ user }) {
       </div>
 
       {tab === "link" && <ClassLinks classes={regular} />}
-      {tab === "books" && <TeacherEbooks grades={[...new Set(regular.map((a) => a.grade))]} subjects={[...new Set(regular.map((a) => a.subject).filter(Boolean))]} specials={[...new Set(specials.map((a) => a.subject).filter(Boolean))]} />}
+      {tab === "books" && <TeacherEbooks classes={regular} specials={[...new Set(specials.map((a) => a.subject).filter(Boolean))]} />}
       {tab === "work" && <TeacherAssignments grades={[...new Set(regular.map((a) => a.grade))]} subject={regular[0] ? regular[0].subject : (user.subject || "")} />}
 
       {tab === "today" && (

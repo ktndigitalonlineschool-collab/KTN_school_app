@@ -15,8 +15,71 @@
 var TOKEN = "CHANGE-ME-to-a-secret";     // must match VITE_DRIVE_TOKEN in the app
 var ROOT_FOLDER_NAME = "KTN Worksheets";  // top folder created in the KTN Drive
 
-function doGet() {
-  return json({ ok: true, msg: "KTN Drive Uploader is running." });
+var VERSION = "books-list-v3";  // bump when redeploying; check it at the /exec URL
+
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  var rootName = p.root || "KTN Books";
+  // Open  <EXEC_URL>?action=list   to see exactly what the app would receive.
+  if (p.action === "list") {
+    return json({ ok: true, books: listBooks(rootName) });
+  }
+  // Open  <EXEC_URL>?debug=1   to see which folders/files the script can see.
+  if (p.debug) {
+    var root = findFolderByName(rootName);
+    if (!root) {
+      var names = [];
+      var top = DriveApp.getRootFolder().getFolders();
+      while (top.hasNext()) names.push(top.next().getName());
+      return json({ ok: true, found: false, lookingFor: rootName,
+        runningAs: Session.getEffectiveUser().getEmail(),
+        note: "No folder named '" + rootName + "' is visible to this account.",
+        topLevelFoldersInThisDrive: names });
+    }
+    var tree = [];
+    var cats = root.getFolders();
+    while (cats.hasNext()) {
+      var cat = cats.next();
+      var subsArr = [];
+      var subs = cat.getFolders();
+      while (subs.hasNext()) {
+        var s = subs.next();
+        subsArr.push({ name: s.getName(), files: countFiles(s) });
+      }
+      tree.push({ category: cat.getName(), filesDirectly: countFiles(cat), subfolders: subsArr });
+    }
+    return json({ ok: true, found: true, rootName: root.getName(), rootId: root.getId(),
+      runningAs: Session.getEffectiveUser().getEmail(), version: VERSION, tree: tree });
+  }
+  return json({
+    ok: true,
+    msg: "KTN Drive Uploader is running.",
+    version: VERSION,
+    actions: ["upload", "list", "notify"]
+  });
+}
+
+function countFiles(folder) {
+  var n = 0, it = folder.getFiles();
+  while (it.hasNext()) { it.next(); n++; }
+  return n;
+}
+function listBooks(rootName) {
+  var root = findFolderByName(rootName);
+  if (!root) return [];
+  var books = [];
+  var cats = root.getFolders();
+  while (cats.hasNext()) {
+    var cat = cats.next();
+    var catName = cat.getName();
+    collectFiles(cat, catName, "", books);
+    var subs = cat.getFolders();
+    while (subs.hasNext()) {
+      var sub = subs.next();
+      collectFiles(sub, catName, sub.getName(), books);
+    }
+  }
+  return books;
 }
 
 function doPost(e) {
@@ -47,22 +110,7 @@ function doPost(e) {
       //   <root>/<Category>/<Subject-or-Level>/<file>
       //   <root>/<Category>/<file>            (also included)
       // Category = "Grade 4", "Tamil", "Korean", ...
-      var rootName = req.root || "KTN Books";
-      var root = findFolderByName(rootName);
-      if (!root) return json({ ok: true, books: [] });
-      var books = [];
-      var cats = root.getFolders();
-      while (cats.hasNext()) {
-        var cat = cats.next();
-        var catName = cat.getName();
-        collectFiles(cat, catName, "", books);          // files directly in the category
-        var subs = cat.getFolders();
-        while (subs.hasNext()) {
-          var sub = subs.next();
-          collectFiles(sub, catName, sub.getName(), books); // files in subject / level
-        }
-      }
-      return json({ ok: true, books: books });
+      return json({ ok: true, books: listBooks(req.root || "KTN Books") });
     }
     if (req.action === "notify") {
       var to = req.to || NOTIFY_EMAIL;
