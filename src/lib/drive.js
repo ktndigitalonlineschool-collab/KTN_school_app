@@ -64,11 +64,33 @@ export async function listDriveBooks(root) {
     const subject = isGrade ? (b.sub || "") : "";
     const open = b.openUrl || (b.fileId ? `https://drive.google.com/file/d/${b.fileId}/view` : "");
     return {
-      id: "drive:" + (b.fileId || b.title), grade, subject, title: b.title || "Untitled",
+      id: "drive:" + (b.fileId || b.title), fileId: b.fileId || "", grade, subject, title: b.title || "Untitled",
       link: open, openUrl: open, viewUrl: b.viewUrl || "", downloadUrl: b.downloadUrl || open,
       fromDrive: true,
     };
   });
+}
+
+// Shared caller for the write actions (rename / replace / delete) on a Drive file.
+async function driveAction(payload) {
+  if (!hasDrive) throw new Error("Drive isn’t set up.");
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ token: TOKEN, ...payload }),
+  });
+  const text = await res.text();
+  let json;
+  try { json = JSON.parse(text); }
+  catch (e) { throw new Error("Drive didn’t respond properly. Re-deploy the Apps Script as a New version."); }
+  if (!json.ok) throw new Error(json.error || "Action failed");
+  return json;
+}
+export function renameDriveFile(fileId, name) { return driveAction({ action: "rename", fileId, name }); }
+export function deleteDriveFile(fileId) { return driveAction({ action: "delete", fileId }); }
+export async function replaceDriveFile(fileId, file) {
+  const dataBase64 = await fileToBase64(file);
+  return driveAction({ action: "replace", fileId, mime: file.type || "application/pdf", dataBase64 });
 }
 
 // Sends a short notification email to the school via the Apps Script backend.

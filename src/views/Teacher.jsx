@@ -4,7 +4,7 @@ import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
 import { fmtDate, classCancelledToday, driveFolderPath } from "../lib/util";
-import { hasDrive, uploadToDrive, listDriveBooks } from "../lib/drive";
+import { hasDrive, uploadToDrive, listDriveBooks, renameDriveFile, replaceDriveFile, deleteDriveFile } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
 import { TEACHERS } from "../data/teachers";
 import * as store from "../lib/store";
@@ -438,6 +438,9 @@ function TeacherEbooks({ classes = [], specials = [] }) {
   const [editId, setEditId] = useState(null);
   const [eTitle, setETitle] = useState("");
   const [eSubject, setESubject] = useState("");
+  const [dEditId, setDEditId] = useState(null);   // Drive file being renamed
+  const [dName, setDName] = useState("");
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     Promise.all(categories.map((c) => store.listEbooksByGrade(c))).then((res) => setList(res.flat().filter(inScope)));
     if (hasDrive) {
@@ -465,13 +468,46 @@ function TeacherEbooks({ classes = [], specials = [] }) {
   }
   async function remove(id) { await store.removeEbook(id); setList((l) => l.filter((e) => e.id !== id)); }
 
+  // ---- Drive file actions (rename / replace / delete the actual PDF in Drive) ----
+  async function saveDriveRename(e) {
+    const name = dName.trim();
+    if (!name) { setDEditId(null); return; }
+    setBusy(true); setDriveErr("");
+    try {
+      const r = await renameDriveFile(e.fileId, name);
+      setDrive((d) => d.map((x) => (x.id === e.id ? { ...x, title: r.name } : x)));
+      setDEditId(null);
+    } catch (err) { setDriveErr(err.message || "Rename failed."); }
+    finally { setBusy(false); }
+  }
+  async function replaceDrive(e, file) {
+    if (!file) return;
+    setBusy(true); setDriveErr("");
+    try {
+      const r = await replaceDriveFile(e.fileId, file);
+      setDrive((d) => d.map((x) => (x.id === e.id
+        ? { ...x, id: "drive:" + r.fileId, fileId: r.fileId, title: r.name, openUrl: r.openUrl, viewUrl: r.viewUrl, downloadUrl: r.downloadUrl, link: r.openUrl }
+        : x)));
+    } catch (err) { setDriveErr(err.message || "Replace failed."); }
+    finally { setBusy(false); }
+  }
+  async function deleteDrive(e) {
+    if (!window.confirm(`Delete “${e.title}” from Drive? This moves it to the Drive trash.`)) return;
+    setBusy(true); setDriveErr("");
+    try {
+      await deleteDriveFile(e.fileId);
+      setDrive((d) => d.filter((x) => x.id !== e.id));
+    } catch (err) { setDriveErr(err.message || "Delete failed."); }
+    finally { setBusy(false); }
+  }
+
   if (list === null) return <p className="para">Loading…</p>;
   const all = [...drive, ...list];
   return (
     <>
       {hasDrive && (
         <div className="card" style={{ padding: "11px 14px", marginBottom: 12, background: "#EAF1FF", border: "none", fontSize: 12.5, color: "#1B327E" }}>
-          <b>Automatic:</b> books load straight from the school's Drive. Just drop PDFs into <b>KTN Books / {grades[0] || "Grade"} / {subjects[0] || "Subject"}</b> and they appear here — nothing to paste.
+          <b>Automatic:</b> books load straight from the school's Drive. Please wait a few seconds for them to load.
         </div>
       )}
       {driveErr && (
@@ -510,16 +546,30 @@ function TeacherEbooks({ classes = [], specials = [] }) {
           <Mascot size={70} style={{ margin: "0 auto 6px" }} />
           <div>{hasDrive ? "No books found in Drive yet. Add PDFs to your class folder in KTN Books." : "No textbooks yet. Add your first one above."}</div>
         </div>
-      ) : all.map((e) => e.fromDrive ? (
-        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+      ) : all.map((e) => e.fromDrive ? (dEditId === e.id ? (
+        <div key={e.id} className="card" style={{ padding: 12, marginBottom: 8, borderColor: "var(--azure)" }}>
+          <input className="input" value={dName} onChange={(ev) => setDName(ev.target.value)} placeholder="File name" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btnP" disabled={busy} onClick={() => saveDriveRename(e)} style={{ flex: 1, justifyContent: "center" }}>{busy ? "Saving…" : "Save"}</button>
+            <button className="btnGhost" onClick={() => setDEditId(null)} style={{ padding: "10px 14px" }}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div key={e.id} className="card" style={{ padding: 14, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--tintBlue)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="book" size={19} color="#2F6BFF" sw={2.2} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14 }}>{e.title}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</div>
             <div style={{ fontSize: 12, color: "var(--inkSoft)" }}>{e.grade}{e.subject ? " · " + e.subject : ""} · Drive</div>
           </div>
           <a href={e.openUrl || e.link} target="_blank" rel="noopener noreferrer" className="btnGhost" style={{ padding: 7 }} title="Open"><Icon name="globe" size={14} color="#2F6BFF" /></a>
+          <button className="btnGhost" onClick={() => { setDEditId(e.id); setDName(e.title || ""); }} style={{ padding: 7 }} title="Rename"><Icon name="edit" size={14} color="#2F6BFF" /></button>
+          <label className="btnGhost" style={{ padding: "7px 9px", cursor: "pointer", fontSize: 11.5, fontWeight: 700, color: "#1E7A45", display: "inline-flex", alignItems: "center", gap: 3 }} title="Replace this PDF with a new file">
+            {busy ? "…" : "Replace"}
+            <input type="file" accept="application/pdf" style={{ display: "none" }} disabled={busy} onChange={(ev) => { replaceDrive(e, ev.target.files[0]); ev.target.value = ""; }} />
+          </label>
+          <button className="btnGhost" onClick={() => deleteDrive(e)} style={{ padding: 7 }} title="Delete"><Icon name="trash" size={14} color="#FF6B5E" /></button>
         </div>
-      ) : editId === e.id ? (
+      )) : editId === e.id ? (
         <div key={e.id} className="card" style={{ padding: 12, marginBottom: 8, borderColor: "var(--azure)" }}>
           <input className="input" value={eTitle} onChange={(ev) => setETitle(ev.target.value)} placeholder="Title" />
           <input className="input" value={eSubject} onChange={(ev) => setESubject(ev.target.value)} placeholder="Subject" />

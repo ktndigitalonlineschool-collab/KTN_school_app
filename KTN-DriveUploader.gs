@@ -12,10 +12,10 @@
  *      Who has access: Anyone → Deploy → copy the /exec URL into the app's .env.
  */
 
-var TOKEN = "CHANGE-ME-to-a-secret";     // must match VITE_DRIVE_TOKEN in the app
+var TOKEN = "ktn-drive-2026";     // must match VITE_DRIVE_TOKEN in the app
 var ROOT_FOLDER_NAME = "KTN Worksheets";  // top folder created in the KTN Drive
 
-var VERSION = "books-list-v3";  // bump when redeploying; check it at the /exec URL
+var VERSION = "books-list-v4";  // bump when redeploying; check it at the /exec URL
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
@@ -55,8 +55,16 @@ function doGet(e) {
     ok: true,
     msg: "KTN Drive Uploader is running.",
     version: VERSION,
-    actions: ["upload", "list", "notify"]
+    actions: ["upload", "list", "rename", "replace", "delete", "notify"]
   });
+}
+
+// Keep a file's original extension when a teacher renames it to a plain title.
+function withExt(newName, oldName) {
+  newName = String(newName || "").trim() || oldName;
+  var m = String(oldName).match(/\.[A-Za-z0-9]+$/);
+  if (m && newName.slice(-m[0].length).toLowerCase() !== m[0].toLowerCase()) return newName + m[0];
+  return newName;
 }
 
 function countFiles(folder) {
@@ -111,6 +119,35 @@ function doPost(e) {
       //   <root>/<Category>/<file>            (also included)
       // Category = "Grade 4", "Tamil", "Korean", ...
       return json({ ok: true, books: listBooks(req.root || "KTN Books") });
+    }
+    if (req.action === "rename") {
+      var rf = DriveApp.getFileById(req.fileId);
+      rf.setName(withExt(req.name, rf.getName()));
+      return json({ ok: true, fileId: req.fileId, name: rf.getName() });
+    }
+    if (req.action === "replace") {
+      // Swap a chapter's PDF for a new one, keeping the same name/location.
+      var oldF = DriveApp.getFileById(req.fileId);
+      var keepName = oldF.getName();
+      var parents = oldF.getParents();
+      var folder = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+      var bytes = Utilities.base64Decode(req.dataBase64);
+      var blob = Utilities.newBlob(bytes, req.mime || "application/pdf", keepName);
+      var nf = folder.createFile(blob);
+      nf.setName(keepName);
+      nf.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      oldF.setTrashed(true);
+      var rid = nf.getId();
+      return json({
+        ok: true, fileId: rid, name: nf.getName(),
+        openUrl: "https://drive.google.com/file/d/" + rid + "/view",
+        viewUrl: "https://drive.google.com/file/d/" + rid + "/preview",
+        downloadUrl: "https://drive.google.com/uc?export=download&id=" + rid
+      });
+    }
+    if (req.action === "delete") {
+      DriveApp.getFileById(req.fileId).setTrashed(true);
+      return json({ ok: true, deleted: true });
     }
     if (req.action === "notify") {
       var to = req.to || NOTIFY_EMAIL;
