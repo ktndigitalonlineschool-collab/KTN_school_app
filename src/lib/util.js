@@ -78,6 +78,7 @@ export function addClassToCalendar({ subject, teacher, day, time, link }) {
     "SUMMARY:" + (subject || "KTN Class") + " — KTN",
     "DESCRIPTION:" + (teacher ? "Teacher: " + teacher + "\\n" : "") + (link ? "Join: " + link : ""),
     link ? "URL:" + link : "",
+    "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", "DESCRIPTION:Class in 1 hour", "END:VALARM",
     "BEGIN:VALARM", "TRIGGER:-PT15M", "ACTION:DISPLAY", "DESCRIPTION:Class in 15 minutes", "END:VALARM",
     "END:VEVENT", "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");

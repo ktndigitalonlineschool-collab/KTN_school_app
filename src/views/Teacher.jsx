@@ -3,7 +3,7 @@ import Icon from "../data/icons.jsx";
 import Mascot from "../components/Mascot.jsx";
 import SectionTitle from "../components/SectionTitle.jsx";
 import { GRADES, TERMS, ATT_LABEL, ATT_COLOR, MARK_MAX } from "../data/school";
-import { fmtDate, classCancelledToday, driveFolderPath } from "../lib/util";
+import { fmtDate, classCancelledToday, driveFolderPath, addClassToCalendar } from "../lib/util";
 import { hasDrive, uploadToDrive, listDriveBooks, renameDriveFile, replaceDriveFile, deleteDriveFile } from "../lib/drive";
 import FileViewer from "../components/FileViewer.jsx";
 import { TEACHERS } from "../data/teachers";
@@ -199,6 +199,7 @@ function TeacherToday({ user, regular, specials, onTake, onMarks }) {
           <div style={{ display: "flex", gap: 8, marginTop: 13 }}>
             <button className="btnP" onClick={() => onTake(i)} style={{ flex: 1, justifyContent: "center", background: "#1E9E5A" }}><Icon name="check" size={15} color="#fff" sw={2.5} /> Take attendance</button>
             {x.link && <a href={x.link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ textDecoration: "none", background: "var(--tintBlue)", color: "var(--azure)" }}><Icon name="globe" size={15} color="#2F6BFF" sw={2.4} /> Join</a>}
+            <button className="btnGhost" onClick={() => addClassToCalendar({ subject: a.subject + " · " + a.grade, teacher: user.name, day: x.day, time: x.time, link: x.link })} title="Add to phone calendar (reminds 1 hr & 15 min before)" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="calendar" size={15} color="#2F6BFF" /></button>
           </div>
         </div>
       ))}
@@ -215,6 +216,7 @@ function TeacherToday({ user, regular, specials, onTake, onMarks }) {
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button className="btnP" onClick={() => onTake(i)} style={{ flex: 1, justifyContent: "center", background: "#fff", color: "var(--azure)", border: "1px solid var(--line)" }}><Icon name="check" size={15} color="#2F6BFF" sw={2.4} /> Attendance</button>
             <button className="btnP" onClick={() => onMarks(i)} style={{ flex: 1, justifyContent: "center", background: "#fff", color: "var(--azure)", border: "1px solid var(--line)" }}><Icon name="award" size={15} color="#2F6BFF" sw={2.4} /> Marks</button>
+            {info && info[i] && info[i].day && <button className="btnP" onClick={() => addClassToCalendar({ subject: a.subject + " · " + a.grade, teacher: user.name, day: info[i].day, time: info[i].time, link: info[i].link })} title="Add to phone calendar (reminds 1 hr & 15 min before)" style={{ justifyContent: "center", background: "#fff", color: "var(--azure)", border: "1px solid var(--line)", padding: "10px 12px" }}><Icon name="calendar" size={15} color="#2F6BFF" /></button>}
           </div>
         </div>
       ))}

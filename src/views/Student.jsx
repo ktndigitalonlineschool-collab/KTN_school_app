@@ -200,10 +200,10 @@ export default function Student({ user }) {
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <a href={link} target="_blank" rel="noopener noreferrer" className="btnP" style={{ flex: 1, justifyContent: "center", textDecoration: "none", background: "#1E9E5A" }}><Icon name="globe" size={15} color="#fff" sw={2.4} /> Join class</a>
                 <button className="btnGhost" onClick={() => { try { navigator.clipboard.writeText(link); } catch (e) {} }} title="Copy link" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="copy" size={15} color="#2F6BFF" /></button>
-                <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link })} title="Add to phone calendar (reminds 15 min before)" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="calendar" size={15} color="#2F6BFF" /></button>
+                <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link })} title="Add to phone calendar (reminds 1 hr & 15 min before)" style={{ padding: "10px 12px", border: "1px solid var(--line)" }}><Icon name="calendar" size={15} color="#2F6BFF" /></button>
               </div>
             ) : (
-              <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link: "" })} style={{ marginTop: 10, color: "var(--azure)", fontWeight: 600, fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="calendar" size={14} color="#2F6BFF" /> Add to calendar (reminds 15 min before)</button>
+              <button className="btnGhost" onClick={() => addClassToCalendar({ subject: r.subject, teacher: r.teacher, day: r.day, time: r.time, link: "" })} style={{ marginTop: 10, color: "var(--azure)", fontWeight: 600, fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="calendar" size={14} color="#2F6BFF" /> Add to calendar (reminds 1 hr & 15 min before)</button>
             )}
           </div>
         );
