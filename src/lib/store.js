@@ -424,16 +424,29 @@ export async function seedRollCounter(next) {
   lsSet("ktn_roll_next", next);
 }
 export async function getNextRoll() {
+  // Floor = (highest roll number currently on file) + 1, so a new student always
+  // continues the sequence (e.g. 19089 on file -> 19090) even if the stored
+  // counter was never seeded or has drifted. The counter still guards against
+  // reusing a number after a student is deleted.
+  let floor = 1;
+  try {
+    const students = await listStudents();
+    const maxRoll = Math.max(0, ...students.map((s) => parseInt(normRoll(s.rollNumber || s.code || ""), 10) || 0));
+    if (maxRoll > 0) floor = maxRoll + 1;
+  } catch (e) { /* fall back to the counter alone */ }
+
   if (hasFirebase) {
     const ref = doc(db, "counters", "roll");
     return await runTransaction(db, async (tx) => {
       const snap = await tx.get(ref);
-      const cur = snap.exists() ? snap.data().next : 1;
-      tx.set(ref, { next: cur + 1 }, { merge: true });
-      return String(cur);
+      const cur = snap.exists() ? (snap.data().next || 1) : 1;
+      const next = Math.max(cur, floor);
+      tx.set(ref, { next: next + 1 }, { merge: true });
+      return String(next);
     });
   }
-  const n = lsGet("ktn_roll_next", 1); lsSet("ktn_roll_next", n + 1); return String(n);
+  const n = Math.max(lsGet("ktn_roll_next", 1), floor);
+  lsSet("ktn_roll_next", n + 1); return String(n);
 }
 
 // One-time import of existing students. Skips roll numbers already present, so
